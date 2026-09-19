@@ -1,0 +1,30 @@
+# Node dependencies
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+**/dist/
+build/
+.output/
+
+# Environment files
+.env
+.env.*
+**/.env
+**/.env.*
+*.env
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# System temp / scratch
+stitch_raw/
+*.log
+

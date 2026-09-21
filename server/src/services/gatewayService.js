@@ -324,5 +324,16 @@ export const gatewayService = {
       last_name: lastName
     };
     return await callGatewayPost(url, payload, 25000);
+  },
+
+  // Compatibility aliases
+  async fetchUanEmploymentHistory(params) {
+    return await this.getUanHistory(params);
+  },
+  async verifyTelecomIdentity(params) {
+    return await this.prefillMobileProfile(params);
+  },
+  async checkIpFraud(params) {
+    return await this.lookupIpRisk(params);
   }
 };

@@ -22,72 +22,90 @@ export async function executeApiTest(apiId, rawInputParams = {}, req = null) {
   switch (foundApi.id) {
     // 1. PAN Card Verification (Fuzzy Match)
     case 'pan-advance':
+    case 'pan':
       liveResult = await gatewayService.verifyPan(inputParams);
       break;
 
     // 2. Aadhaar DigiLocker – Generate URL
     case 'aadhaar-digilocker-generate':
+    case 'digilocker-generate':
       liveResult = await gatewayService.generateDigiLockerUrl(inputParams);
       break;
 
     // 3. Aadhaar DigiLocker – Fetch Details
     case 'aadhaar-digilocker-fetch':
+    case 'digilocker-fetch':
       liveResult = await gatewayService.fetchDigiLockerDetails(inputParams);
       break;
 
     // 4. Bank Account Verification
     case 'bank-account-verification':
+    case 'bank-account':
       liveResult = await gatewayService.verifyBankAccount(inputParams);
       break;
 
-    // 5. IFSC Directory Lookup
+    // 5. Bank IFSC Code Lookup
+    case 'bank-ifsc-lookup':
     case 'ifsc-lookup':
+    case 'ifsc':
       liveResult = await gatewayService.lookupIfsc(inputParams);
       break;
 
-    // 6. UAN Lookup (Mobile Number)
+    // 6. EPFO / UAN Mobile Lookup
     case 'uan-lookup-mobile':
+    case 'uan-mobile':
       liveResult = await gatewayService.lookupUanByMobile(inputParams);
       break;
 
-    // 7. UAN Employment History
+    // 7. UAN Direct Employment History
+    case 'uan-direct-history':
     case 'uan-employment-history':
-      liveResult = await gatewayService.fetchUanEmploymentHistory(inputParams);
+    case 'uan-direct':
+      liveResult = await gatewayService.getUanHistory(inputParams);
       break;
 
-    // 8. Telecom Mobile Identity
+    // 8. Mobile Profile & Reference Prefill
+    case 'mobile-profile-prefill':
     case 'telecom-mobile-identity':
-      liveResult = await gatewayService.verifyTelecomIdentity(inputParams);
+    case 'mobile-prefill':
+      liveResult = await gatewayService.prefillMobileProfile(inputParams);
       break;
 
     // 9. IP Fraud & Geolocation
     case 'ip-fraud-geolocation':
-      liveResult = await gatewayService.checkIpFraud(inputParams);
+    case 'ip-check':
+      liveResult = await gatewayService.lookupIpRisk(inputParams);
       break;
 
     // 10. Reverse Geocoding (Lat/Long)
     case 'reverse-geocoding':
+    case 'reverse-geo':
       liveResult = await gatewayService.reverseGeocode(inputParams);
       break;
 
     // 11. Domain Age & MX Security
     case 'domain-age-security':
+    case 'domain-age':
       liveResult = await gatewayService.checkDomainAge(inputParams);
       break;
 
     // 12. CIBIL TransUnion Credit PDF
     case 'cibil-transunion-pdf':
     case 'cibil-transunion-v5':
+    case 'cibil-pdf':
+    case 'cibil-hybrid':
       liveResult = await gatewayService.getCibilTransunionPdf(inputParams);
       break;
 
     // 13. Experian Credit Bureau Report
     case 'experian-credit-report':
+    case 'experian':
       liveResult = await gatewayService.getExperianReport(inputParams);
       break;
 
     // 14. CRIF HighMark Credit Score (V4)
     case 'crif-credit-score-v4':
+    case 'crif-score':
       liveResult = await gatewayService.getCrifCreditScore(inputParams);
       break;
 

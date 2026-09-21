@@ -4,6 +4,9 @@ const getApiBase = () => {
     const cleanUrl = envUrl.trim().replace(/\/+$/, '');
     return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
   }
+  if (import.meta.env.PROD) {
+    return 'https://laxminiwas.onrender.com/api';
+  }
   return '/api';
 };
 

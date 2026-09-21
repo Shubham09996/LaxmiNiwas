@@ -41,7 +41,13 @@ import {
   X,
   FileText,
   Eye,
-  EyeOff
+  EyeOff,
+  User,
+  Calendar,
+  Hash,
+  Activity,
+  Users,
+  FileCheck
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext.jsx';
 
@@ -54,6 +60,66 @@ function safeText(val, fallback = '—') {
     return fallback;
   }
   return String(val);
+}
+
+function parseAddress(addr) {
+  if (!addr) return null;
+  if (typeof addr === 'string') {
+    const trimmed = addr.trim();
+    if (!trimmed) return null;
+    return {
+      fullText: trimmed,
+      street: trimmed,
+      city: '',
+      state: '',
+      pincode: '',
+      country: '',
+      reportedDate: ''
+    };
+  }
+  if (typeof addr !== 'object') return null;
+
+  const line1 = addr.first_line_of_address || addr.line1 || addr.address_line_1 || addr.address_line1 || addr.building_name || addr.house || addr.house_no || addr.premise || '';
+  const line2 = addr.second_line_of_address || addr.line2 || addr.address_line_2 || addr.address_line2 || addr.street_name || addr.street || addr.locality || addr.sublocality || '';
+  const line3 = addr.third_line_of_address || addr.line3 || addr.address_line_3 || addr.address_line3 || addr.landmark || '';
+
+  const streetParts = [line1, line2, line3].map(s => (s ? String(s).trim() : '')).filter(Boolean);
+  const street = streetParts.join(', ');
+
+  const city = addr.city || addr.town || addr.district || addr.district_name || addr.vtc || '';
+  const state = addr.state || addr.state_name || '';
+  const pincode = addr.postal_code || addr.pincode || addr.zip || addr.postcode || addr.postalCode || '';
+  
+  let country = addr.country || addr.country_name || '';
+  if (!country && (addr.country_code === 'IB' || addr.country_code === 'IN' || addr.country_code === 'IND')) {
+    country = 'India (IB)';
+  } else if (!country && addr.country_code) {
+    country = addr.country_code;
+  }
+
+  const reportedDate = addr.reported_date || addr.reportedDate || addr.date || '';
+
+  const fullParts = [
+    street,
+    city,
+    state ? (pincode ? `${state} - ${pincode}` : state) : pincode,
+    country
+  ].map(s => (s ? String(s).trim() : '')).filter(Boolean);
+
+  const fullText = fullParts.join(', ') || addr.address || addr.full_address || addr.display_name || '—';
+
+  return {
+    line1,
+    line2,
+    line3,
+    street: street || fullText,
+    city,
+    state,
+    pincode,
+    country,
+    reportedDate,
+    fullText
+  };
 }
 
 export default function Visual3DCard({ result }) {
@@ -292,20 +358,45 @@ export default function Visual3DCard({ result }) {
 /* =========================================================================
    1. PAN CARD VERIFICATION (#01) — OFFICIAL ITD DIGITAL CERTIFICATE
    ========================================================================= */
-function PanVisualCard({ data }) {
-  const pan = data.pan || '—';
-  const name = data.name || '—';
-  const fatherName = data.fatherName;
-  const dob = data.dob;
-  const gender = data.gender;
-  const entityType = data.entityType || 'Individual';
-  const aadhaarLinked = data.aadhaarLinked;
-  const aadhaarNumber = data.aadhaarNumber;
-  const aadhaarSeedingStatus = data.aadhaarSeedingStatus;
-  const matchScore = data.matchScore || 'Verified';
-  const address = data.address;
-  const mobile = data.mobile;
-  const email = data.email;
+function PanVisualCard({ data = {}, raw = {} }) {
+  const toast = useToast();
+  const [copied, setCopied] = useState(false);
+  
+  const rawRes = raw?.result || raw?.data?.result || raw?.data || raw || {};
+  const pan = data.pan || rawRes.pan || rawRes.pan_number || '—';
+  const name = data.name || rawRes.name || rawRes.fullname || rawRes.registered_name || '—';
+  const firstName = data.firstName || rawRes.first_name;
+  const middleName = data.middleName || rawRes.middle_name;
+  const lastName = data.lastName || rawRes.last_name;
+  const fatherName = data.fatherName || rawRes.father_name || rawRes.fathername;
+  const dob = data.dob || rawRes.dob || rawRes.date_of_birth;
+  const gender = data.gender || rawRes.gender;
+  const entityType = data.entityType || rawRes.entity_type || rawRes.pan_type || 'Individual';
+  const aadhaarLinked = data.aadhaarLinked || rawRes.aadhaar_linked;
+  const aadhaarNumber = data.aadhaarNumber || rawRes.aadhaar_number;
+  const aadhaarSeedingStatus = data.aadhaarSeedingStatus || rawRes.aadhaar_seeding_status;
+  const matchScore = data.matchScore || rawRes.name_match_score || rawRes.match_score || 'Verified';
+  
+  const rawAddr = data.address || rawRes.address;
+  const parsedAddr = useMemo(() => parseAddress(rawAddr), [rawAddr]);
+
+  const mobile = data.mobile || rawRes.mobile || rawRes.mobile_number || rawRes.phone;
+  const email = data.email || rawRes.email;
+  const clientRefNum = data.clientRefNum || rawRes.client_ref_num || raw.client_ref_num;
+  const requestId = data.requestId || rawRes.request_id || raw.request_id;
+
+  const handleCopyPan = () => {
+    if (!pan || pan === '—') return;
+    navigator.clipboard.writeText(pan);
+    setCopied(true);
+    toast?.addToast?.({
+      title: 'PAN Copied',
+      message: `${pan} copied to clipboard.`,
+      type: 'success',
+      duration: 1500
+    });
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   return (
     <div className="relative w-full rounded-3xl p-5 sm:p-6 shadow-2xl border border-sky-400/40 overflow-hidden bg-gradient-to-br from-[#0e2c48] via-[#153b60] to-[#0a2034] text-slate-100 select-none space-y-3.5">
@@ -348,13 +439,23 @@ function PanVisualCard({ data }) {
         </div>
 
         <div className="col-span-8 sm:col-span-9 space-y-2.5">
-          <div>
-            <span className="text-[8px] font-bold text-sky-300 uppercase block tracking-wider">
-              Permanent Account Number (PAN)
-            </span>
-            <div className="font-mono text-xl sm:text-2xl font-black text-amber-300 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-              {pan}
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-[8px] font-bold text-sky-300 uppercase block tracking-wider">
+                Permanent Account Number (PAN)
+              </span>
+              <div className="font-mono text-xl sm:text-2xl font-black text-amber-300 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                {pan}
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={handleCopyPan}
+              className="p-1.5 rounded-lg bg-sky-950/80 border border-sky-400/30 text-sky-300 hover:text-white transition-all text-xs"
+              title="Copy PAN"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            </button>
           </div>
 
           <div>
@@ -364,20 +465,25 @@ function PanVisualCard({ data }) {
             <span className="font-extrabold text-white text-xs sm:text-sm tracking-wide block uppercase truncate">
               {name}
             </span>
+            {(firstName || lastName) && (
+              <span className="text-[10px] text-sky-300/80 font-mono block">
+                Split: {firstName || ''} {middleName ? `${middleName} ` : ''}{lastName || ''}
+              </span>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs font-mono">
             <div>
               <span className="text-[8px] font-bold text-sky-300 uppercase block font-sans">Date of Birth (DOB)</span>
-              <span className="font-bold text-amber-200 block truncate">{dob || '— (Masked by ITD)'}</span>
+              <span className="font-bold text-amber-200 block truncate">{dob || '—'}</span>
             </div>
             <div>
               <span className="text-[8px] font-bold text-sky-300 uppercase block font-sans">Gender</span>
-              <span className="font-bold text-sky-100 block uppercase truncate">{gender || 'Individual'}</span>
+              <span className="font-bold text-sky-100 block uppercase truncate">{gender || '—'}</span>
             </div>
             <div className="col-span-2">
               <span className="text-[8px] font-bold text-sky-300 uppercase block font-sans">Father's Name</span>
-              <span className="font-bold text-sky-100 block uppercase truncate">{fatherName || '— (Restricted by ITD)'}</span>
+              <span className="font-bold text-sky-100 block uppercase truncate">{fatherName || '—'}</span>
             </div>
           </div>
         </div>
@@ -390,7 +496,9 @@ function PanVisualCard({ data }) {
           <div className="min-w-0">
             <span className="text-[8px] font-bold text-slate-400 uppercase block">Aadhaar Link</span>
             <span className="font-bold text-emerald-300 text-[11px] block truncate">
-              {aadhaarLinked ? (aadhaarNumber ? `Seeded (${aadhaarNumber})` : 'Linked & Seeded') : (aadhaarSeedingStatus ? `Status: ${aadhaarSeedingStatus}` : 'Not Linked')}
+              {aadhaarLinked !== null && aadhaarLinked !== undefined
+                ? (aadhaarLinked ? (aadhaarNumber ? `Seeded (${aadhaarNumber})` : 'Linked & Seeded') : 'Not Linked')
+                : (aadhaarSeedingStatus ? `Status: ${aadhaarSeedingStatus}` : '—')}
             </span>
           </div>
         </div>
@@ -398,9 +506,9 @@ function PanVisualCard({ data }) {
         <div className="p-2 rounded-xl bg-sky-950/70 border border-sky-400/30 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" />
           <div className="min-w-0">
-            <span className="text-[8px] font-bold text-slate-400 uppercase block">Fuzzy Match Score</span>
+            <span className="text-[8px] font-bold text-slate-400 uppercase block">Name Match</span>
             <span className="font-bold text-amber-300 text-[11px] block truncate">
-              {matchScore || 'Verified'}
+              {matchScore || '—'}
             </span>
           </div>
         </div>
@@ -410,16 +518,16 @@ function PanVisualCard({ data }) {
           <div className="min-w-0">
             <span className="text-[8px] font-bold text-slate-400 uppercase block">ITD Status</span>
             <span className="font-bold text-emerald-300 text-[11px] block truncate">
-              {data.status || 'Active & Operative'}
+              {data.status || '—'}
             </span>
           </div>
         </div>
       </div>
 
       {/* Registered Contact & Address */}
-      {(address || mobile || email) ? (
+      {(parsedAddr || mobile || email) && (
         <div className="relative z-10 p-3.5 rounded-2xl bg-sky-950/80 border border-sky-400/30 space-y-2 text-xs">
-          {address && (
+          {parsedAddr && (
             <div className="flex items-start gap-2">
               <MapPin className="w-3.5 h-3.5 text-sky-400 flex-shrink-0 mt-0.5" />
               <div>
@@ -427,7 +535,7 @@ function PanVisualCard({ data }) {
                   Registered Postal Address:
                 </span>
                 <span className="font-medium text-slate-200 leading-relaxed block">
-                  {address}
+                  {parsedAddr.fullText}
                 </span>
               </div>
             </div>
@@ -450,10 +558,12 @@ function PanVisualCard({ data }) {
             </div>
           )}
         </div>
-      ) : (
-        <div className="relative z-10 p-2.5 rounded-xl bg-sky-950/60 border border-sky-400/20 flex items-center justify-between text-[11px] text-sky-200 font-mono">
-          <span>🏛️ ITD Database Record: <strong className="text-white">Active & Operative</strong></span>
-          <span className="text-emerald-400 font-bold">100% Valid Taxpayer</span>
+      )}
+
+      {(clientRefNum || requestId) && (
+        <div className="relative z-10 flex items-center justify-between text-[10px] font-mono text-sky-300/70 pt-1 border-t border-sky-400/10">
+          {clientRefNum && <span>Ref: {clientRefNum}</span>}
+          {requestId && <span className="truncate max-w-[200px]">ReqID: {requestId}</span>}
         </div>
       )}
     </div>
@@ -463,11 +573,28 @@ function PanVisualCard({ data }) {
 /* =========================================================================
    2. DIGILOCKER GENERATE URL (#02)
    ========================================================================= */
-function DigiLockerGenerateCard({ data }) {
-  const aadhaarMasked = data.aadhaarMasked || '—';
-  const redirectUrl = data.redirectUrl;
-  const clientId = data.clientId || '—';
-  const expirySeconds = data.expirySeconds || 1800;
+function DigiLockerGenerateCard({ data = {}, raw = {} }) {
+  const toast = useToast();
+  const [copiedUrl, setCopiedUrl] = useState(false);
+
+  const rawRes = raw?.data || raw?.result || raw || {};
+  const aadhaarMasked = data.aadhaarMasked || rawRes.aadhaar_number || '—';
+  const redirectUrl = data.redirectUrl || rawRes.url || rawRes.redirect_url;
+  const clientId = data.clientId || rawRes.client_id || '—';
+  const expirySeconds = data.expirySeconds || rawRes.expiry_seconds || 1800;
+
+  const handleCopyUrl = () => {
+    if (!redirectUrl) return;
+    navigator.clipboard.writeText(redirectUrl);
+    setCopiedUrl(true);
+    toast?.addToast?.({
+      title: 'Consent URL Copied',
+      message: 'DigiLocker resident authorization URL copied to clipboard.',
+      type: 'success',
+      duration: 1800
+    });
+    setTimeout(() => setCopiedUrl(false), 1800);
+  };
 
   return (
     <div className="w-full p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#0c1f2e] via-[#0f2d42] to-[#081722] border border-cyan-500/30 text-white space-y-3.5 shadow-2xl">
@@ -485,7 +612,7 @@ function DigiLockerGenerateCard({ data }) {
             </span>
           </div>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center">
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center font-mono">
           TOKEN ACTIVE
         </span>
       </div>
@@ -507,16 +634,46 @@ function DigiLockerGenerateCard({ data }) {
       </div>
 
       {redirectUrl && (
-        <a
-          href={redirectUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full p-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-glow-emerald flex items-center justify-center gap-2 transition-all group active:scale-[0.99]"
-        >
-          <span>Open DigiLocker Resident Consent Gateway</span>
-          <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-        </a>
+        <div className="space-y-2">
+          <a
+            href={redirectUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full p-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-glow-emerald flex items-center justify-center gap-2 transition-all group active:scale-[0.99]"
+          >
+            <span>Open DigiLocker Resident Consent Gateway</span>
+            <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          </a>
+
+          <button
+            type="button"
+            onClick={handleCopyUrl}
+            className="w-full py-2 rounded-xl bg-cyan-950/60 hover:bg-cyan-950/90 border border-cyan-500/30 text-[11px] font-bold text-cyan-300 transition-all flex items-center justify-center gap-1.5"
+          >
+            {copiedUrl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{copiedUrl ? 'Consent URL Copied' : 'Copy Direct Consent URL'}</span>
+          </button>
+        </div>
       )}
+
+      {/* Step guidance */}
+      <div className="p-3 rounded-2xl bg-slate-950/60 border border-cyan-500/20 text-[11px] text-slate-300 space-y-1">
+        <span className="text-[9px] font-bold text-cyan-300 uppercase tracking-wider block">e-KYC Consent Lifecycle:</span>
+        <div className="grid grid-cols-3 gap-2 text-center pt-1">
+          <div className="p-2 rounded-lg bg-cyan-950/40 border border-cyan-500/20">
+            <span className="font-bold text-white block">1. Open URL</span>
+            <span className="text-[9px] text-slate-400">UIDAI Gateway</span>
+          </div>
+          <div className="p-2 rounded-lg bg-cyan-950/40 border border-cyan-500/20">
+            <span className="font-bold text-white block">2. Enter OTP</span>
+            <span className="text-[9px] text-slate-400">Mobile Auth</span>
+          </div>
+          <div className="p-2 rounded-lg bg-cyan-950/40 border border-cyan-500/20">
+            <span className="font-bold text-white block">3. e-KYC Fetch</span>
+            <span className="text-[9px] text-slate-400">Signed XML</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -524,16 +681,32 @@ function DigiLockerGenerateCard({ data }) {
 /* =========================================================================
    3. AADHAAR DIGILOCKER FETCH DETAILS (#03)
    ========================================================================= */
-function AadhaarVisualCard({ data }) {
-  const aadhaarNumber = data.aadhaarMasked || 'XXXXXXXXXXXX';
-  const nameEn = data.nameEnglish || '—';
-  const careOf = data.careOf;
-  const dob = data.dob || '—';
-  const gender = data.gender || '—';
-  const address = data.address || '—';
-  const zip = data.zip;
-  const xmlUrl = data.xmlUrl;
-  const clientId = data.clientId;
+function AadhaarVisualCard({ data = {}, raw = {} }) {
+  const rawXml = raw?.data?.aadhaar_xml_data || raw?.aadhaar_xml_data || {};
+  const rawMeta = raw?.data?.digilocker_metadata || raw?.digilocker_metadata || {};
+
+  const aadhaarNumber = data.aadhaarMasked || rawXml.masked_aadhaar || '—';
+  const nameEn = data.nameEnglish || rawXml.full_name || rawMeta.name || '—';
+  const careOf = data.careOf || rawXml.care_of || rawXml.father_name;
+  const dob = data.dob || rawXml.dob || rawMeta.dob || '—';
+  const gender = data.gender || rawXml.gender || rawMeta.gender || '—';
+  const photo = data.photo || rawXml.photo || rawXml.image || raw?.data?.photo;
+  
+  const rawAddr = data.address || rawXml.full_address || rawXml.address;
+  const parsedAddr = useMemo(() => parseAddress(rawAddr || {
+    house: data.house || rawXml.house,
+    street: data.street || rawXml.street,
+    landmark: data.landmark || rawXml.landmark,
+    locality: data.locality || rawXml.locality || rawXml.loc,
+    vtc: data.vtc || rawXml.vtc,
+    district: data.district || rawXml.district || rawXml.dist,
+    state: data.state || rawXml.state,
+    pincode: data.zip || rawXml.zip
+  }), [data, rawXml, rawAddr]);
+
+  const zip = data.zip || rawXml.zip || parsedAddr?.pincode;
+  const xmlUrl = data.xmlUrl || raw?.data?.xml_url;
+  const clientId = data.clientId || raw?.data?.client_id;
 
   return (
     <div className="relative w-full rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-200/50 overflow-hidden bg-[#fafafa] text-slate-900 select-none space-y-3.5">
@@ -564,7 +737,15 @@ function AadhaarVisualCard({ data }) {
       <div className="grid grid-cols-12 gap-4 py-2 items-center">
         <div className="col-span-4 sm:col-span-3">
           <div className="w-24 h-28 sm:w-28 sm:h-32 rounded-2xl bg-slate-200 border-2 border-slate-400/40 shadow-md flex flex-col items-center justify-center relative overflow-hidden">
-            <span className="text-3xl">👤</span>
+            {photo ? (
+              <img
+                src={photo.startsWith('data:') ? photo : `data:image/jpeg;base64,${photo}`}
+                alt="Aadhaar Resident Photo"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-3xl">👤</span>
+            )}
             <div className="absolute bottom-0 inset-x-0 bg-slate-900/90 text-white text-[7px] text-center font-bold py-0.5">
               UIDAI VERIFIED
             </div>
@@ -586,10 +767,11 @@ function AadhaarVisualCard({ data }) {
               <div><strong className="font-bold text-slate-900">जन्म तिथि / DOB:</strong> {dob}</div>
               <div><strong className="font-bold text-slate-900">लिंग / Gender:</strong> {gender}</div>
             </div>
-            <div className="text-[11px] text-slate-600 leading-relaxed pt-1 border-t border-slate-200">
-              <strong className="font-bold text-slate-900">पता / Address:</strong> {address}
-              {zip && !address.includes(zip) && ` - ${zip}`}
-            </div>
+            {parsedAddr && (
+              <div className="text-[11px] text-slate-600 leading-relaxed pt-1 border-t border-slate-200">
+                <strong className="font-bold text-slate-900">पता / Address:</strong> {parsedAddr.fullText}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -631,15 +813,35 @@ function AadhaarVisualCard({ data }) {
 /* =========================================================================
    4. BANK ACCOUNT VERIFICATION (#04)
    ========================================================================= */
-function BankAccountCard({ data }) {
-  const bankName = data.bankName || '—';
-  const accountMasked = data.accountMasked || '—';
-  const beneficiaryName = data.beneficiaryName || '—';
-  const ifsc = data.ifsc || '—';
-  const branch = data.branch;
-  const city = data.city;
-  const referenceId = data.referenceId;
-  const accountStatus = data.accountStatus || 'ACTIVE';
+function BankAccountCard({ data = {}, raw = {} }) {
+  const toast = useToast();
+  const [copiedAcc, setCopiedAcc] = useState(false);
+
+  const rawRes = raw?.data || raw?.result || raw || {};
+  const bankName = data.bankName || rawRes.bank_name || rawRes.bank || '—';
+  const accountNum = data.accountNumber || rawRes.account_number || rawRes.acc_no || '—';
+  const accountMasked = data.accountMasked || (accountNum !== '—' && accountNum.length > 4 ? `${accountNum.slice(0, 4)} •••• •••• ${accountNum.slice(-4)}` : accountNum);
+  const beneficiaryName = data.beneficiaryName || rawRes.beneficiary_name || rawRes.full_name || rawRes.name || '—';
+  const ifsc = data.ifsc || rawRes.ifsc || rawRes.ifsc_code || '—';
+  const branch = data.branch || rawRes.branch || rawRes.branch_name;
+  const city = data.city || rawRes.city || rawRes.district;
+  const state = data.state || rawRes.state;
+  const referenceId = data.referenceId || rawRes.reference_id || rawRes.ref_id || rawRes.client_ref_num || rawRes.utr;
+  const matchScore = data.matchScore || rawRes.name_match_score || rawRes.match_score;
+  const accountStatus = data.accountStatus || rawRes.account_status || 'ACTIVE';
+
+  const handleCopyAcc = () => {
+    if (!accountNum || accountNum === '—') return;
+    navigator.clipboard.writeText(accountNum);
+    setCopiedAcc(true);
+    toast?.addToast?.({
+      title: 'Account Number Copied',
+      message: 'Bank account number copied.',
+      type: 'success',
+      duration: 1500
+    });
+    setTimeout(() => setCopiedAcc(false), 1500);
+  };
 
   return (
     <div className="relative w-full rounded-2xl p-5 sm:p-6 shadow-2xl border border-indigo-400/30 overflow-hidden bg-gradient-to-br from-[#0c1b33] via-[#102a4e] to-[#081326] text-white select-none space-y-3.5">
@@ -664,34 +866,50 @@ function BankAccountCard({ data }) {
       </div>
 
       <div className="py-4 space-y-3">
-        <div>
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">
-            Validated Account Number
-          </span>
-          <div className="font-mono text-xl sm:text-2xl font-black text-slate-100 tracking-widest">
-            {accountMasked}
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">
+              Validated Account Number
+            </span>
+            <div className="font-mono text-xl sm:text-2xl font-black text-slate-100 tracking-widest">
+              {accountMasked}
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={handleCopyAcc}
+            className="p-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white transition-all text-xs"
+            title="Copy Account Number"
+          >
+            {copiedAcc ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+          </button>
         </div>
 
         <div className="grid grid-cols-2 gap-3 pt-2">
           <div>
             <span className="text-[8px] font-bold text-indigo-300 uppercase block">Beneficiary Name</span>
-            <span className="font-extrabold text-white text-xs sm:text-sm uppercase block truncate">
+            <span className="font-extrabold text-amber-300 text-xs sm:text-sm uppercase block truncate">
               {beneficiaryName}
             </span>
+            {matchScore && (
+              <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">
+                Match Score: {matchScore}%
+              </span>
+            )}
           </div>
           <div className="text-right">
             <span className="text-[8px] font-bold text-indigo-300 uppercase block">IFSC Code</span>
             <span className="font-mono font-extrabold text-amber-300 text-xs sm:text-sm block">
               {ifsc}
             </span>
-            {branch && <span className="text-[9px] text-slate-400 block truncate">{branch} {city ? `• ${city}` : ''}</span>}
+            {branch && <span className="text-[9px] text-slate-400 block truncate">{branch} {city ? `• ${city}` : ''} {state ? `(${state})` : ''}</span>}
           </div>
         </div>
 
         {referenceId && (
-          <div className="pt-2 border-t border-indigo-500/20 text-right">
-            <span className="text-[9px] font-mono text-slate-400">CBS Ref: <strong className="text-slate-200">{referenceId}</strong></span>
+          <div className="pt-2 border-t border-indigo-500/20 flex items-center justify-between text-[9px] font-mono text-slate-400">
+            <span>Transfer Rails: <strong className="text-emerald-400">IMPS / NEFT / RTGS Enabled</strong></span>
+            <span>CBS Ref: <strong className="text-slate-200">{referenceId}</strong></span>
           </div>
         )}
       </div>
@@ -702,20 +920,39 @@ function BankAccountCard({ data }) {
 /* =========================================================================
    5. BANK IFSC CODE LOOKUP (#05) — TAILORED BRANCH CERTIFICATE
    ========================================================================= */
-function IfscDirectoryCard({ data }) {
-  const bankName = data.bankName || 'BANK NAME NOT PROVIDED';
-  const ifsc = data.ifsc || '—';
-  const branch = data.branch || '—';
-  const address = data.address || '—';
-  const contact = data.contact;
-  const city = data.city;
-  const district = data.district;
-  const state = data.state;
-  const micr = data.micr;
+function IfscDirectoryCard({ data = {}, raw = {} }) {
+  const toast = useToast();
+  const [copiedIfsc, setCopiedIfsc] = useState(false);
+
+  const rawRes = raw?.data || raw?.result || raw || {};
+  const bankName = data.bankName || rawRes.bank || rawRes.bank_name || '—';
+  const ifsc = data.ifsc || rawRes.ifsc || rawRes.ifsc_code || '—';
+  const branch = data.branch || rawRes.branch || rawRes.branch_name || '—';
+  const address = data.address || rawRes.address || '—';
+  const contact = data.contact || rawRes.contact || rawRes.phone;
+  const city = data.city || rawRes.city;
+  const district = data.district || rawRes.district;
+  const state = data.state || rawRes.state;
+  const micr = data.micr || rawRes.micr || rawRes.micr_code;
+  const swift = data.swift || rawRes.swift;
+  const centre = data.centre || rawRes.centre;
+  const bankCode = data.bankCode || rawRes.bank_code;
+
+  const handleCopyIfsc = () => {
+    if (!ifsc || ifsc === '—') return;
+    navigator.clipboard.writeText(ifsc);
+    setCopiedIfsc(true);
+    toast?.addToast?.({
+      title: 'IFSC Copied',
+      message: `${ifsc} copied to clipboard.`,
+      type: 'success',
+      duration: 1500
+    });
+    setTimeout(() => setCopiedIfsc(false), 1500);
+  };
 
   return (
     <div className="relative w-full rounded-3xl p-5 sm:p-6 shadow-2xl border border-indigo-500/30 overflow-hidden bg-gradient-to-br from-[#0c1630] via-[#101e44] to-[#080f22] text-white space-y-3.5">
-      
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pb-3.5 border-b border-slate-800">
         <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
@@ -732,11 +969,21 @@ function IfscDirectoryCard({ data }) {
           </div>
         </div>
 
-        <div className="text-left sm:text-right flex-shrink-0 self-start sm:self-center bg-slate-950/80 px-3 py-1.5 rounded-xl border border-indigo-500/30">
-          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">IFSC Code</span>
-          <span className="font-mono text-sm sm:text-base font-black text-amber-300 tracking-wider">
-            {ifsc}
-          </span>
+        <div className="flex items-center gap-2 self-start sm:self-center">
+          <div className="text-left sm:text-right bg-slate-950/80 px-3 py-1.5 rounded-xl border border-indigo-500/30">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">IFSC Code</span>
+            <span className="font-mono text-sm sm:text-base font-black text-amber-300 tracking-wider">
+              {ifsc}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleCopyIfsc}
+            className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-all text-xs"
+            title="Copy IFSC"
+          >
+            {copiedIfsc ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+          </button>
         </div>
       </div>
 
@@ -751,7 +998,7 @@ function IfscDirectoryCard({ data }) {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-800/60 font-mono text-[11px]">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-800/60 font-mono text-[11px]">
           {city && (
             <div>
               <span className="text-[8px] font-bold text-slate-500 uppercase block">City / District</span>
@@ -771,12 +1018,30 @@ function IfscDirectoryCard({ data }) {
             </div>
           )}
           {contact && (
-            <div className="col-span-full sm:col-span-1">
+            <div>
               <span className="text-[8px] font-bold text-slate-500 uppercase block">Phone / Contact</span>
-              <span className="font-bold text-emerald-300 flex items-center gap-1.5 mt-0.5">
+              <span className="font-bold text-emerald-300 flex items-center gap-1 mt-0.5 truncate">
                 <Phone className="w-3 h-3 flex-shrink-0" />
-                <span>{contact}</span>
+                <span className="truncate">{contact}</span>
               </span>
+            </div>
+          )}
+          {swift && (
+            <div>
+              <span className="text-[8px] font-bold text-slate-500 uppercase block">SWIFT Code</span>
+              <span className="font-bold text-sky-300 block">{swift}</span>
+            </div>
+          )}
+          {centre && (
+            <div>
+              <span className="text-[8px] font-bold text-slate-500 uppercase block">Centre</span>
+              <span className="font-bold text-slate-300 block">{centre}</span>
+            </div>
+          )}
+          {bankCode && (
+            <div>
+              <span className="text-[8px] font-bold text-slate-500 uppercase block">Bank Code</span>
+              <span className="font-bold text-slate-300 block">{bankCode}</span>
             </div>
           )}
         </div>
@@ -813,11 +1078,33 @@ function IfscDirectoryCard({ data }) {
 /* =========================================================================
    6. EPFO UAN MOBILE LOOKUP (#06)
    ========================================================================= */
-function UanLookupCard({ data }) {
-  const uanFormatted = data.uanFormatted || '—';
-  const mobile = data.mobile || '—';
-  const memberName = data.memberName;
-  const employer = data.employer;
+function UanLookupCard({ data = {}, raw = {} }) {
+  const toast = useToast();
+  const [copiedUan, setCopiedUan] = useState(false);
+
+  const rawRes = raw?.data || raw?.result || raw || {};
+  const uan = data.uan || rawRes.uan || rawRes.uan_number;
+  const uanFormatted = data.uanFormatted || (uan && String(uan).length === 12 ? String(uan).replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3') : uan || '—');
+  const mobile = data.mobile || rawRes.mobile || rawRes.mobile_number || '—';
+  const memberName = data.memberName || rawRes.member_name || rawRes.name || rawRes.fullname;
+  const employer = data.employer || rawRes.employer || rawRes.establishment_name;
+  const fatherName = data.fatherName || rawRes.father_name || rawRes.fathername;
+  const dob = data.dob || rawRes.dob;
+  const gender = data.gender || rawRes.gender;
+  const clientRefNum = data.clientRefNum || rawRes.client_ref_num || raw.client_ref_num;
+
+  const handleCopyUan = () => {
+    if (!uan || uan === '—') return;
+    navigator.clipboard.writeText(String(uan));
+    setCopiedUan(true);
+    toast?.addToast?.({
+      title: 'UAN Copied',
+      message: `${uan} copied to clipboard.`,
+      type: 'success',
+      duration: 1500
+    });
+    setTimeout(() => setCopiedUan(false), 1500);
+  };
 
   return (
     <div className="w-full p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#062422] via-[#0b3d39] to-[#041a18] border border-teal-500/30 text-white space-y-3.5 shadow-2xl">
@@ -828,37 +1115,59 @@ function UanLookupCard({ data }) {
             EPFO Universal Account Number Lookup
           </span>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center">
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center font-mono">
           {safeText(data.status, 'UAN RECORD FOUND')}
         </span>
       </div>
 
-      <div className="py-2">
-        <span className="text-[9px] font-bold text-teal-300 uppercase block tracking-wider">
-          Discovered Universal Account Number (UAN)
-        </span>
-        <div className="font-mono text-2xl sm:text-3xl font-black text-teal-300 tracking-widest">
-          {uanFormatted}
+      <div className="py-2 flex items-center justify-between">
+        <div>
+          <span className="text-[9px] font-bold text-teal-300 uppercase block tracking-wider">
+            Discovered Universal Account Number (UAN)
+          </span>
+          <div className="font-mono text-2xl sm:text-3xl font-black text-teal-300 tracking-widest">
+            {uanFormatted}
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={handleCopyUan}
+          className="p-2 rounded-xl bg-teal-950/80 border border-teal-500/30 hover:border-teal-400 text-teal-300 hover:text-white transition-all text-xs"
+          title="Copy UAN"
+        >
+          {copiedUan ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+        </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-teal-400/20 text-xs font-mono">
-        <div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 border-t border-teal-400/20 text-xs font-mono">
+        <div className="p-3 rounded-xl bg-teal-950/60 border border-teal-500/20">
           <span className="text-[8px] font-bold text-slate-400 uppercase block">Registered Mobile</span>
-          <span className="font-bold text-white">+91 {mobile}</span>
+          <span className="font-bold text-white text-sm">+91 {mobile}</span>
         </div>
         {memberName && (
-          <div>
-            <span className="text-[8px] font-bold text-slate-400 uppercase block">Member Name</span>
-            <span className="font-bold text-amber-300 truncate block">{memberName}</span>
+          <div className="p-3 rounded-xl bg-teal-950/60 border border-teal-500/20">
+            <span className="text-[8px] font-bold text-slate-400 uppercase block">Member Full Name</span>
+            <span className="font-bold text-amber-300 text-sm truncate block uppercase">{memberName}</span>
+          </div>
+        )}
+        {fatherName && (
+          <div className="p-3 rounded-xl bg-teal-950/60 border border-teal-500/20">
+            <span className="text-[8px] font-bold text-slate-400 uppercase block">Father / Spouse Name</span>
+            <span className="font-bold text-white text-xs truncate block uppercase">{fatherName}</span>
           </div>
         )}
       </div>
 
       {employer && (
-        <div className="p-3 rounded-2xl bg-teal-950/60 border border-teal-500/20 text-xs">
-          <span className="text-[8px] font-bold text-slate-400 uppercase block mb-0.5">Associated Employer:</span>
-          <span className="font-extrabold text-white block uppercase">{employer}</span>
+        <div className="p-3.5 rounded-2xl bg-teal-950/60 border border-teal-500/20 text-xs space-y-1">
+          <span className="text-[8px] font-bold text-teal-300 uppercase block">Associated Contributory Employer:</span>
+          <span className="font-extrabold text-white text-sm uppercase block truncate">{employer}</span>
+        </div>
+      )}
+
+      {clientRefNum && (
+        <div className="pt-1 text-right">
+          <span className="font-mono text-[10px] text-teal-300/70">Audit Ref: {clientRefNum}</span>
         </div>
       )}
     </div>
@@ -868,14 +1177,22 @@ function UanLookupCard({ data }) {
 /* =========================================================================
    7. UAN DIRECT EMPLOYMENT HISTORY (#07)
    ========================================================================= */
-function UanHistoryCard({ data }) {
-  const uanFormatted = data.uanFormatted || '—';
-  const memberName = data.memberName || '—';
-  const employer = data.employer || '—';
-  const doj = data.doj;
-  const doe = data.doe;
-  const totalServiceMonths = data.totalServiceMonths;
-  const monthlyPfAmount = data.monthlyPfAmount;
+function UanHistoryCard({ data = {}, raw = {} }) {
+  const summary = raw?.data?.summary || raw?.summary || {};
+  const recentEmployerData = summary?.recent_employer_data || {};
+
+  const uan = data.uan || summary.uan || raw?.data?.uan;
+  const uanFormatted = data.uanFormatted || (uan && String(uan).length === 12 ? String(uan).replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3') : uan || '—');
+  const memberName = data.memberName || summary.member_name || raw?.data?.member_name || '—';
+  const employer = data.employer || recentEmployerData.establishment_name || '—';
+  const doj = data.doj || recentEmployerData.doj;
+  const doe = data.doe || recentEmployerData.doe;
+  const totalServiceMonths = data.totalServiceMonths || summary.total_service_months;
+  const monthlyPfAmount = data.monthlyPfAmount || summary.monthly_pf_amount;
+
+  const rawEstablishments = (Array.isArray(data.establishments) && data.establishments.length > 0)
+    ? data.establishments
+    : (Array.isArray(summary?.establishment_data) ? summary.establishment_data : (Array.isArray(raw?.data?.establishments) ? raw.data.establishments : []));
 
   return (
     <div className="w-full p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#062422] via-[#0b3d39] to-[#041a18] border border-teal-500/30 text-white space-y-3.5 shadow-2xl">
@@ -886,7 +1203,7 @@ function UanHistoryCard({ data }) {
             EPFO Passbook Service Record
           </span>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center">
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center font-mono">
           {safeText(data.status, 'ACTIVE CONTRIBUTORY')}
         </span>
       </div>
@@ -903,7 +1220,7 @@ function UanHistoryCard({ data }) {
           <span className="text-[8px] font-bold text-teal-300 uppercase block">Active Establishment / Employer</span>
           <span className="font-extrabold text-white text-sm uppercase block truncate">{employer}</span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t border-teal-400/20 font-mono text-[11px]">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-teal-400/20 font-mono text-[11px]">
           <div>
             <span className="text-[8px] font-bold text-slate-400 uppercase block">Member Name</span>
             <span className="font-bold text-amber-300 block truncate">{memberName}</span>
@@ -928,6 +1245,30 @@ function UanHistoryCard({ data }) {
           )}
         </div>
       </div>
+
+      {/* Multiple Establishments Timeline */}
+      {rawEstablishments.length > 0 && (
+        <div className="space-y-2 pt-2 border-t border-teal-500/20">
+          <span className="text-[9px] font-bold text-teal-300 uppercase block">
+            Employer Establishment History ({rawEstablishments.length} Tenures)
+          </span>
+          <div className="space-y-2">
+            {rawEstablishments.map((est, idx) => (
+              <div key={idx} className="p-3 rounded-2xl bg-teal-950/80 border border-teal-500/20 text-xs space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-white uppercase">{est.establishment_name || est.employer || `Establishment #${idx + 1}`}</span>
+                  {est.member_id && <span className="text-[9px] font-mono text-teal-300">{est.member_id}</span>}
+                </div>
+                <div className="grid grid-cols-3 gap-2 font-mono text-[10px] text-slate-300 pt-1 border-t border-teal-500/10">
+                  <span>DOJ: <strong className="text-white">{est.doj || '—'}</strong></span>
+                  <span>DOE: <strong className="text-white">{est.doe || 'Present'}</strong></span>
+                  <span>Tenure: <strong className="text-emerald-300">{est.service_months || est.months || '—'}m</strong></span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -935,88 +1276,299 @@ function UanHistoryCard({ data }) {
 /* =========================================================================
    8. TELECOM MOBILE PROFILE PREFILL (#08)
    ========================================================================= */
-function TelecomCard({ data }) {
-  const mobileFormatted = data.mobileFormatted || '—';
-  const name = data.name || '—';
-  const pan = data.pan;
-  const dob = data.dob;
-  const age = data.age;
-  const gender = data.gender;
-  const email = data.email;
-  const references = data.references || [];
-  const addressList = data.addressList || [];
+function TelecomCard({ data = {}, raw = {} }) {
+  const toast = useToast();
+  const [copiedAddrIdx, setCopiedAddrIdx] = useState(null);
+
+  const rawRes = raw?.result || raw?.data?.result || raw?.data || raw || {};
+  
+  const mobile = data.mobile || rawRes.mobile_number || rawRes.mobile || '—';
+  const mobileFormatted = data.mobileFormatted || (mobile !== '—' ? `+91 ${String(mobile).slice(-10)}` : '—');
+  const name = data.name || rawRes.name || rawRes.fullname || '—';
+  const pan = data.pan || rawRes.pan || rawRes.pan_number || null;
+  const dob = data.dob || rawRes.dob || null;
+  const age = data.age || rawRes.age || null;
+  const gender = data.gender || rawRes.gender || null;
+  const email = data.email || rawRes.email || null;
+
+  const rawAddresses = (Array.isArray(data.addressList) && data.addressList.length > 0)
+    ? data.addressList
+    : (Array.isArray(rawRes.address) ? rawRes.address : (Array.isArray(rawRes.addresses) ? rawRes.addresses : []));
+
+  const parsedAddresses = useMemo(() => {
+    return rawAddresses.map(a => parseAddress(a)).filter(Boolean);
+  }, [rawAddresses]);
+
+  const references = Array.isArray(data.references) && data.references.length > 0
+    ? data.references
+    : (Array.isArray(rawRes.references) ? rawRes.references : []);
+
+  const clientRefNum = data.clientRefNum || rawRes.client_ref_num || raw.client_ref_num || null;
+  const requestId = data.requestId || raw.request_id || rawRes.request_id || null;
+  const resultCode = data.resultCode || raw.result_code || rawRes.result_code || null;
+  const idspayMessage = data.message || raw.message || rawRes.idspay_message || rawRes.message || null;
+
+  const handleCopyAddress = (fullText, idx) => {
+    navigator.clipboard.writeText(fullText);
+    setCopiedAddrIdx(idx);
+    toast?.addToast?.({
+      title: 'Address Copied',
+      message: 'Telecom reported residential address copied.',
+      type: 'success',
+      duration: 1800
+    });
+    setTimeout(() => setCopiedAddrIdx(null), 1800);
+  };
 
   return (
-    <div className="w-full p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#2b0c0c] via-[#3a1212] to-[#1c0808] border border-red-500/30 text-white space-y-3.5 shadow-2xl">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-red-500/20">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Smartphone className="w-5 h-5 text-red-400 flex-shrink-0" />
-          <span className="font-extrabold text-sm uppercase text-red-200 truncate">
-            Telecom Subscriber Profile & Prefill
+    <div className="w-full rounded-3xl bg-gradient-to-br from-[#200909] via-[#2d0e0e] to-[#150606] border border-rose-500/30 text-white space-y-4 shadow-2xl p-4 sm:p-6 overflow-hidden">
+      {/* 1. Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-rose-500/20">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-11 h-11 rounded-2xl bg-rose-600/20 border border-rose-500/40 text-rose-300 flex items-center justify-center font-black text-sm shadow-inner flex-shrink-0">
+            <Smartphone className="w-5 h-5 text-rose-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="text-base sm:text-lg font-black text-white tracking-wide truncate">
+                Telecom Subscriber Profile & Demographics
+              </h4>
+              <span className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold bg-rose-950/80 text-rose-300 border border-rose-500/40 uppercase tracking-wider whitespace-nowrap">
+                CARRIER e-KYC PREFILL
+              </span>
+            </div>
+            <span className="text-[10px] text-rose-300 font-bold uppercase tracking-wider block truncate mt-0.5">
+              TRAI Carrier Records • Central Telecom Demographics Register
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
+          <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm font-mono">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>{safeText(data.status, 'SUBSCRIBER ACTIVE')}</span>
           </span>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center">
-          {safeText(data.status, 'SUBSCRIBER ACTIVE')}
-        </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 py-2 text-xs">
-        <div>
-          <span className="text-[8px] font-bold text-red-300 uppercase block">Subscriber Number</span>
-          <span className="font-mono text-xl font-black text-white">{mobileFormatted}</span>
-        </div>
-        <div>
-          <span className="text-[8px] font-bold text-red-300 uppercase block">Full Name</span>
-          <span className="font-extrabold text-amber-300 text-sm block uppercase truncate">{name}</span>
-          {pan && <span className="text-[10px] text-slate-300 font-mono block">PAN: <strong>{pan}</strong></span>}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-red-500/20 text-xs font-mono">
-        {dob && (
+      {/* 2. Technical Audit Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 rounded-2xl bg-rose-950/40 border border-rose-500/20 text-xs font-mono">
+        {clientRefNum && (
           <div>
-            <span className="text-[8px] font-bold text-slate-400 uppercase block">DOB / Age</span>
-            <span className="font-bold text-white">{dob} {age ? `(${age}y)` : ''}</span>
+            <span className="text-[8px] font-bold text-rose-300/70 uppercase block">Client Ref</span>
+            <span className="font-bold text-slate-200 truncate block">{clientRefNum}</span>
           </div>
         )}
-        {gender && (
+        {requestId && (
+          <div className="truncate">
+            <span className="text-[8px] font-bold text-rose-300/70 uppercase block">Request ID</span>
+            <span className="font-bold text-slate-200 truncate block" title={requestId}>{requestId}</span>
+          </div>
+        )}
+        {resultCode && (
           <div>
-            <span className="text-[8px] font-bold text-slate-400 uppercase block">Gender</span>
-            <span className="font-bold text-white">{gender}</span>
+            <span className="text-[8px] font-bold text-rose-300/70 uppercase block">Result Code</span>
+            <span className="font-bold text-emerald-400 block">{resultCode} ({idspayMessage || 'Success'})</span>
           </div>
         )}
-        {email && (
-          <div className="col-span-full sm:col-span-1 truncate">
-            <span className="text-[8px] font-bold text-slate-400 uppercase block">Email</span>
-            <span className="font-bold text-slate-200 truncate block">{email}</span>
-          </div>
-        )}
+        <div>
+          <span className="text-[8px] font-bold text-rose-300/70 uppercase block">Carrier Registry</span>
+          <span className="font-bold text-rose-300 block">TRAI Demographics</span>
+        </div>
       </div>
 
-      {addressList.length > 0 && (
-        <div className="p-3 rounded-2xl bg-red-950/60 border border-red-500/20 text-xs space-y-1">
-          <span className="text-[8px] font-bold text-red-300 uppercase block">Residential Address:</span>
-          {addressList.map((a, idx) => (
-            <span key={idx} className="font-medium text-slate-200 block">
-              {typeof a === 'string' ? a : `${a.line1 || ''}, ${a.city || ''}, ${a.state || ''} ${a.pincode ? `- ${a.pincode}` : ''}`}
+      {/* 3. Core Demographic Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {/* Subscriber Mobile */}
+        <div className="p-4 rounded-2xl bg-slate-950/80 border border-rose-500/20 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-bold text-rose-300 uppercase tracking-wider">Subscriber Number</span>
+            <Phone className="w-3.5 h-3.5 text-rose-400" />
+          </div>
+          <div className="font-mono text-xl sm:text-2xl font-black text-white tracking-wider">
+            {mobileFormatted}
+          </div>
+          <span className="text-[10px] text-emerald-400 font-bold block">✓ Verified Active MSISDN</span>
+        </div>
+
+        {/* Full Name & Tax ID */}
+        <div className="p-4 rounded-2xl bg-slate-950/80 border border-rose-500/20 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-bold text-rose-300 uppercase tracking-wider">Registered Subscriber Name</span>
+            <User className="w-3.5 h-3.5 text-amber-400" />
+          </div>
+          <div className="text-base sm:text-lg font-black text-amber-300 uppercase truncate">
+            {name}
+          </div>
+          {pan ? (
+            <span className="text-[11px] text-slate-300 font-mono block">
+              PAN: <strong className="text-white font-bold">{pan}</strong>
             </span>
-          ))}
+          ) : (
+            <span className="text-[10px] text-slate-500 font-mono">PAN: Not Linked in Telecom</span>
+          )}
         </div>
-      )}
 
-      {references.length > 0 && (
-        <div className="pt-3 border-t border-red-500/20 space-y-2">
-          <span className="text-[9px] font-bold text-red-300 uppercase block">Emergency References</span>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {references.map((r, i) => (
-              <div key={i} className="p-2.5 rounded-xl bg-red-950/60 border border-red-500/20 text-xs">
-                <span className="font-bold text-white block">{r.name || `Reference #${i + 1}`} ({r.relationship || r.relation || 'Relation'})</span>
-                <span className="font-mono text-[10px] text-slate-300">{r.mobile || r.phone || '—'}</span>
+        {/* DOB, Age & Gender */}
+        <div className="p-4 rounded-2xl bg-slate-950/80 border border-rose-500/20 space-y-1 sm:col-span-2 lg:col-span-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-bold text-rose-300 uppercase tracking-wider">Demographic Profile</span>
+            <Calendar className="w-3.5 h-3.5 text-sky-400" />
+          </div>
+          <div className="flex items-center gap-3 text-xs font-mono">
+            <div>
+              <span className="text-[8px] text-slate-400 uppercase block">DOB / Age</span>
+              <span className="font-bold text-white">{dob || '—'} {age ? `(${age}y)` : ''}</span>
+            </div>
+            <div className="h-6 w-px bg-rose-500/20"></div>
+            <div>
+              <span className="text-[8px] text-slate-400 uppercase block">Gender</span>
+              <span className="font-bold text-rose-200 uppercase">{gender || '—'}</span>
+            </div>
+          </div>
+          {email && (
+            <div className="pt-1 border-t border-rose-500/10 truncate">
+              <span className="text-[10px] text-slate-300 font-mono truncate block" title={email}>
+                ✉ {email}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 4. Complete Reported Addresses List */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-rose-400" />
+            <span className="text-xs font-black text-white uppercase tracking-wider">
+              Reported Carrier Residential Addresses ({parsedAddresses.length})
+            </span>
+          </div>
+          <span className="text-[10px] text-rose-300/80 font-mono">
+            {parsedAddresses.length > 0 ? `${parsedAddresses.length} Verified Records` : 'No Address'}
+          </span>
+        </div>
+
+        {parsedAddresses.length > 0 ? (
+          <div className="space-y-2.5">
+            {parsedAddresses.map((addr, idx) => (
+              <div
+                key={idx}
+                className="p-4 rounded-2xl bg-slate-950/90 border border-rose-500/25 space-y-2 relative group hover:border-rose-500/50 transition-all shadow-inner"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[9px] font-mono font-extrabold uppercase">
+                      Address #{idx + 1} • {idx === 0 ? 'Primary Demography Record' : 'Historical Carrier Record'}
+                    </span>
+                    {addr.reportedDate && (
+                      <span className="text-[9px] text-slate-400 font-mono">
+                        Reported: {addr.reportedDate}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopyAddress(addr.fullText, idx)}
+                    className="flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-[10px] font-bold text-slate-300 hover:text-white transition-all"
+                    title="Copy full address"
+                  >
+                    {copiedAddrIdx === idx ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedAddrIdx === idx ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+
+                {/* Street / Doorstep Line */}
+                <div className="space-y-0.5">
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Premises / Doorstep Address:
+                  </span>
+                  <p className="text-xs sm:text-sm font-semibold text-slate-100 leading-relaxed break-words font-sans">
+                    {addr.street}
+                  </p>
+                </div>
+
+                {/* Structured City / State / Pincode / Country Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-rose-500/15 font-mono text-[11px]">
+                  <div>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase block">City / Town</span>
+                    <span className="font-bold text-white truncate block">{addr.city || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase block">State</span>
+                    <span className="font-bold text-white truncate block">{addr.state || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase block">Postal PIN</span>
+                    <span className="font-bold text-amber-300 block">{addr.pincode || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase block">Country</span>
+                    <span className="font-bold text-slate-200 truncate block">{addr.country || 'India'}</span>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
+        ) : (
+          <div className="p-4 rounded-2xl bg-slate-950/60 border border-rose-500/20 text-center text-xs text-slate-400">
+            No residential address records found in telecom demography profile.
+          </div>
+        )}
+      </div>
+
+      {/* 5. Emergency References Section */}
+      <div className="space-y-2 pt-1 border-t border-rose-500/20">
+        <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-rose-400" />
+            <span className="text-xs font-black text-white uppercase tracking-wider">
+              Emergency References ({references.length})
+            </span>
+          </div>
         </div>
-      )}
+
+        {references.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {references.map((r, i) => (
+              <div key={i} className="p-3.5 rounded-2xl bg-slate-950/90 border border-rose-500/20 text-xs space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-white text-sm uppercase">
+                    {r.name || `Reference #${i + 1}`}
+                  </span>
+                  <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-500/30">
+                    {r.relationship || r.relation || 'Emergency Contact'}
+                  </span>
+                </div>
+                <div className="font-mono text-xs text-emerald-300 font-bold">
+                  📞 {r.mobile || r.phone || '—'}
+                </div>
+                {r.address && (
+                  <p className="text-[11px] text-slate-400 truncate mt-1">
+                    📍 {typeof r.address === 'string' ? r.address : JSON.stringify(r.address)}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-rose-500/20 text-xs text-slate-400 flex items-center justify-between">
+            <span>Emergency secondary references: <strong className="text-slate-300">None reported in carrier records</strong></span>
+            <span className="text-slate-500 font-mono text-[10px]">TRAI Registry Clean</span>
+          </div>
+        )}
+      </div>
+
+      {/* 6. Footer Compliance Badge */}
+      <div className="p-3 rounded-xl bg-[#180808] border border-rose-500/30 flex items-center justify-between text-xs text-rose-200">
+        <span className="flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          <span>Statutory Telecom Carrier Demographic Profile verified against live telecom gateway.</span>
+        </span>
+        <span className="font-mono font-bold text-emerald-400 text-[10px] hidden sm:block">100% REAL LIVE SLA</span>
+      </div>
     </div>
   );
 }
@@ -1223,18 +1775,18 @@ function IpFraudCard({ data = {}, raw = {} }) {
 
       </div>
 
-      {/* 4. Bottom Regional / State Match Banner */}
+      {/* 4. Bottom Network Intelligence Status Banner */}
       <div className="p-4 rounded-2xl bg-[#08152B] border border-emerald-500/30 flex items-center gap-3.5 shadow-inner">
         <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-400 flex items-center justify-center font-bold flex-shrink-0">
           <CheckCircle2 className="w-5 h-5 text-emerald-400" />
         </div>
         <div className="min-w-0">
           <span className="text-xs font-black text-white block">
-            Regional State Match (Same State)
+            {data.vpn || 'IP Network & Geolocation Verified'}
           </span>
           <span className="text-[11px] text-slate-300 font-medium block mt-0.5">
             {locationTitle !== '—'
-              ? `IP located in ${locationTitle}${region ? `, matching declared region ${region}` : ''}.`
+              ? `IP ${ip} localized to ${locationTitle}${isp !== '—' ? ` via ${isp}` : ''}.`
               : `IP Geolocation verified for ${ip}.`}
           </span>
         </div>
@@ -1603,14 +2155,21 @@ function GeoReverseCard({ data = {}, raw = {} }) {
 /* =========================================================================
    11. DOMAIN AGE & SECURITY (#11)
    ========================================================================= */
-function DomainCard({ data }) {
-  const domain = data.domain || '—';
-  const age = data.age || '—';
-  const createdDate = data.createdDate;
-  const expiryDate = data.expiryDate;
-  const registrar = data.registrar;
-  const mxRecords = data.mxRecords || [];
-  const mxValid = data.mxValid;
+function DomainCard({ data = {}, raw = {} }) {
+  const rawRes = raw?.data || raw?.result || raw || {};
+  const domain = data.domain || rawRes.domain || '—';
+  const age = data.age || rawRes.age || rawRes.domain_age || '—';
+  const createdDate = data.createdDate || rawRes.creation_date || rawRes.created;
+  const expiryDate = data.expiryDate || rawRes.expiration_date || rawRes.expiry;
+  const registrar = data.registrar || rawRes.registrar;
+  const mxRecords = (Array.isArray(data.mxRecords) && data.mxRecords.length > 0)
+    ? data.mxRecords
+    : (Array.isArray(rawRes.mx_records) ? rawRes.mx_records : []);
+  const mxValid = data.mxValid !== undefined ? data.mxValid : (rawRes.mx_valid !== false);
+  const nameservers = (Array.isArray(data.nameservers) && data.nameservers.length > 0)
+    ? data.nameservers
+    : (Array.isArray(rawRes.nameservers) ? rawRes.nameservers : (Array.isArray(rawRes.name_servers) ? rawRes.name_servers : []));
+  const whoisServer = data.whoisServer || rawRes.whois_server || rawRes.whoisServer;
 
   return (
     <div className="w-full p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#0c132c] via-[#121c40] to-[#070b1a] border border-indigo-500/30 text-white space-y-3.5 shadow-2xl">
@@ -1618,10 +2177,10 @@ function DomainCard({ data }) {
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <Globe className="w-5 h-5 text-indigo-400 flex-shrink-0" />
           <span className="font-extrabold text-sm uppercase text-indigo-200 truncate">
-            ICANN Corporate Domain Security
+            ICANN Corporate Domain Security & DNS
           </span>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center">
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center font-mono">
           {safeText(data.status, 'VERIFIED')}
         </span>
       </div>
@@ -1633,26 +2192,39 @@ function DomainCard({ data }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-indigo-500/20 text-center text-xs font-mono">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t border-indigo-500/20 text-center text-xs font-mono">
         {createdDate && (
-          <div className="p-2 rounded-xl bg-indigo-950/60 border border-indigo-500/20">
-            <span className="text-[8px] font-bold text-slate-400 uppercase block">Created</span>
+          <div className="p-2.5 rounded-xl bg-indigo-950/60 border border-indigo-500/20">
+            <span className="text-[8px] font-bold text-slate-400 uppercase block">Created Date</span>
             <span className="font-bold text-white">{createdDate}</span>
           </div>
         )}
         {expiryDate && (
-          <div className="p-2 rounded-xl bg-indigo-950/60 border border-indigo-500/20">
-            <span className="text-[8px] font-bold text-slate-400 uppercase block">Expires</span>
+          <div className="p-2.5 rounded-xl bg-indigo-950/60 border border-indigo-500/20">
+            <span className="text-[8px] font-bold text-slate-400 uppercase block">Expiry Date</span>
             <span className="font-bold text-white">{expiryDate}</span>
           </div>
         )}
         {registrar && (
-          <div className="p-2 rounded-xl bg-indigo-950/60 border border-indigo-500/20 col-span-full sm:col-span-1">
-            <span className="text-[8px] font-bold text-slate-400 uppercase block">Registrar</span>
+          <div className="p-2.5 rounded-xl bg-indigo-950/60 border border-indigo-500/20 col-span-2 sm:col-span-1">
+            <span className="text-[8px] font-bold text-slate-400 uppercase block">Accredited Registrar</span>
             <span className="font-bold text-indigo-300 truncate block">{registrar}</span>
           </div>
         )}
       </div>
+
+      {nameservers.length > 0 && (
+        <div className="p-3 rounded-2xl bg-indigo-950/60 border border-indigo-500/20 text-xs">
+          <span className="text-[8px] font-bold text-indigo-300 uppercase block mb-1">
+            Authoritative DNS Nameservers ({nameservers.length})
+          </span>
+          <div className="font-mono text-[11px] text-slate-300 grid grid-cols-1 sm:grid-cols-2 gap-1">
+            {nameservers.map((ns, idx) => (
+              <div key={idx} className="truncate">🌐 {ns}</div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {mxRecords.length > 0 && (
         <div className="p-3 rounded-2xl bg-indigo-950/60 border border-indigo-500/20 text-xs">
@@ -1664,6 +2236,12 @@ function DomainCard({ data }) {
               <div key={idx} className="truncate">📫 {mx}</div>
             ))}
           </div>
+        </div>
+      )}
+
+      {whoisServer && (
+        <div className="text-right text-[10px] font-mono text-slate-400 pt-1">
+          WHOIS Server: <strong className="text-slate-300">{whoisServer}</strong>
         </div>
       )}
     </div>

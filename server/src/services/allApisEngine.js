@@ -189,11 +189,11 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         'B': 'Body of Individuals (BOI)',
         'G': 'Government Agency'
       };
-      const entityType = getVal(rawData, 'pan_type', 'entity_type') || (entityCode ? entityMap[entityCode] : 'Individual');
+      const entityType = getVal(rawData, 'pan_type', 'entity_type') || (entityCode ? entityMap[entityCode] : null);
       const firstName = getVal(rawData, 'first_name');
       const middleName = getVal(rawData, 'middle_name');
       const lastName = getVal(rawData, 'last_name');
-      const fullName = getVal(rawData, 'fullname', 'full_name', 'name', 'registered_name') || (firstName ? `${firstName} ${middleName ? `${middleName} ` : ''}${lastName || ''}`.trim() : inputParams.name);
+      const fullName = getVal(rawData, 'fullname', 'full_name', 'name', 'registered_name') || (firstName ? `${firstName} ${middleName ? `${middleName} ` : ''}${lastName || ''}`.trim() : (inputParams.name || null));
       const fatherName = getVal(rawData, 'father_name', 'fathername');
       const dob = getVal(rawData, 'dob', 'date_of_birth');
       const gender = getVal(rawData, 'gender');
@@ -201,24 +201,26 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       const aadhaarLinkedBool = getVal(rawData, 'aadhaar_linked');
       const aadhaarSeeding = getVal(rawData, 'aadhaar_seeding_status');
       const aadhaarNumber = getVal(rawData, 'aadhaar_number');
-      const isAadhaarLinked = aadhaarLinkedBool === true || aadhaarLinkedBool === 'true' || aadhaarSeeding === 'Y' || aadhaarSeeding === 'y' || Boolean(aadhaarNumber);
+      const isAadhaarLinked = (aadhaarLinkedBool !== null && aadhaarLinkedBool !== undefined)
+        ? (aadhaarLinkedBool === true || aadhaarLinkedBool === 'true')
+        : (aadhaarSeeding ? (aadhaarSeeding === 'Y' || aadhaarSeeding === 'y') : (aadhaarNumber ? true : null));
 
       const matchScoreRaw = getVal(rawData, 'name_match_score', 'match_score');
       const nameMatch = getVal(rawData, 'name_match');
       const matchScore = (matchScoreRaw !== null && matchScoreRaw !== undefined && String(matchScoreRaw).trim() !== '')
         ? `${matchScoreRaw}% Matched`
-        : (nameMatch === true ? '100% Match' : (isSuccess ? 'Verified' : null));
+        : (nameMatch === true ? '100% Match' : null);
 
       let formattedAddress = null;
       const addrObj = getVal(rawData, 'address');
       if (addrObj && typeof addrObj === 'object') {
         const parts = [
-          addrObj.building_name,
-          addrObj.street_name,
-          addrObj.locality,
+          addrObj.building_name || addrObj.first_line_of_address || addrObj.line1,
+          addrObj.street_name || addrObj.second_line_of_address || addrObj.line2,
+          addrObj.locality || addrObj.third_line_of_address || addrObj.line3,
           addrObj.city,
-          addrObj.state ? `${addrObj.state}${addrObj.pincode ? ` - ${addrObj.pincode}` : ''}` : addrObj.pincode,
-          addrObj.country
+          addrObj.state ? `${addrObj.state}${addrObj.pincode || addrObj.postal_code ? ` - ${addrObj.pincode || addrObj.postal_code}` : ''}` : (addrObj.pincode || addrObj.postal_code),
+          addrObj.country || (addrObj.country_code === 'IB' || addrObj.country_code === 'IN' ? 'India' : addrObj.country_code)
         ].filter(p => p && String(p).trim() !== '');
         if (parts.length > 0) formattedAddress = parts.join(', ');
       } else if (typeof addrObj === 'string' && addrObj.trim() !== '') {
@@ -227,25 +229,31 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
 
       const mobile = getVal(rawData, 'mobile', 'mobile_number', 'phone');
       const email = getVal(rawData, 'email');
+      const clientRefNum = getVal(rawData, 'client_ref_num', 'clientRefNum');
+      const requestId = getVal(rawData, 'request_id', 'requestId');
+      const rawStatus = getVal(rawData, 'status', 'pan_status');
 
       return {
         cardType: 'PAN_CARD',
-        pan: panNum,
+        pan: panNum || null,
         name: fullName ? String(fullName).toUpperCase() : null,
         firstName: firstName ? String(firstName).toUpperCase() : null,
+        middleName: middleName ? String(middleName).toUpperCase() : null,
         lastName: lastName ? String(lastName).toUpperCase() : null,
         fatherName: fatherName ? String(fatherName).toUpperCase() : null,
         dob: dob || null,
         gender: gender ? String(gender).toUpperCase() : null,
-        entityType: entityType || 'Individual',
+        entityType: entityType || null,
         aadhaarLinked: isAadhaarLinked,
         aadhaarNumber: aadhaarNumber || null,
-        aadhaarSeedingStatus: aadhaarSeeding || (isAadhaarLinked ? 'Y' : null),
+        aadhaarSeedingStatus: aadhaarSeeding || (isAadhaarLinked === true ? 'Y' : null),
         matchScore,
         address: formattedAddress,
         mobile: mobile || null,
         email: email || null,
-        status: isSuccess ? 'ACTIVE & OPERATIVE' : 'VERIFICATION FAILED',
+        clientRefNum: clientRefNum || null,
+        requestId: requestId || null,
+        status: rawStatus ? String(rawStatus).toUpperCase() : (isSuccess ? 'ACTIVE' : 'FAILED'),
         issuer: 'INCOME TAX DEPARTMENT • GOVT OF INDIA'
       };
     }
@@ -255,20 +263,23 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       const rawAadhaar = (getVal(rawData, 'aadhaar_number', 'aadhaarNumber') || inputParams.aadhaar_number || '').replace(/\D/g, '');
       const masked = rawAadhaar.length === 12
         ? `${rawAadhaar.slice(0, 4)} ${rawAadhaar.slice(4, 8)} ${rawAadhaar.slice(8, 12)}`
-        : (rawAadhaar.length > 4 ? `XXXX XXXX ${rawAadhaar.slice(-4)}` : (rawAadhaar || '—'));
+        : (rawAadhaar.length > 4 ? `XXXX XXXX ${rawAadhaar.slice(-4)}` : (rawAadhaar || null));
       const redirectUrl = rawData?.data?.url || getVal(rawData, 'url', 'redirect_url', 'redirectUrl', 'token_url', 'auth_url');
       const clientId = rawData?.data?.client_id || getVal(rawData, 'client_id', 'clientId', 'session_id', 'token_id') || inputParams.client_id;
-      const expirySeconds = rawData?.data?.expiry_seconds || getVal(rawData, 'expiry_seconds', 'expirySeconds') || 1800;
+      const expirySeconds = rawData?.data?.expiry_seconds || getVal(rawData, 'expiry_seconds', 'expirySeconds');
       const token = rawData?.data?.token || getVal(rawData, 'token');
+      const requestId = getVal(rawData, 'request_id', 'requestId');
+      const rawStatus = getVal(rawData, 'status');
 
       return {
         cardType: 'DIGILOCKER_GENERATE_CARD',
         aadhaarMasked: masked,
-        redirectUrl,
-        clientId: clientId || '—',
+        redirectUrl: redirectUrl || null,
+        clientId: clientId || null,
         token: token || null,
-        expirySeconds,
-        status: isSuccess ? 'DIGILOCKER CONSENT INITIALIZED' : 'GENERATION FAILED',
+        expirySeconds: expirySeconds || null,
+        requestId: requestId || null,
+        status: rawStatus ? String(rawStatus).toUpperCase() : (isSuccess ? 'TOKEN ACTIVE' : 'FAILED'),
         issuer: 'UIDAI • DIGILOCKER GATEWAY'
       };
     }
@@ -281,7 +292,7 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       const rawAadhaar = xmlData.masked_aadhaar || getVal(rawData, 'masked_aadhaar', 'aadhaar_number', 'aadhaar') || '';
       const masked = rawAadhaar && rawAadhaar.length === 12
         ? `${rawAadhaar.slice(0, 4)} ${rawAadhaar.slice(4, 8)} ${rawAadhaar.slice(8, 12)}`
-        : (rawAadhaar || 'XXXXXXXXXXXX');
+        : (rawAadhaar || null);
 
       const name = xmlData.full_name || metadata.name || getVal(rawData, 'full_name', 'name', 'fullname');
       const careOf = xmlData.care_of || xmlData.father_name || getVal(rawData, 'care_of', 'father_name');
@@ -291,6 +302,15 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       const fullAddress = xmlData.full_address || getVal(rawData, 'full_address', 'address', 'display_name');
       const xmlUrl = rawData?.data?.xml_url || getVal(rawData, 'xml_url');
       const clientId = rawData?.data?.client_id || getVal(rawData, 'client_id', 'clientId') || inputParams.client_id;
+      const photo = xmlData.photo || xmlData.image || rawData?.data?.photo || getVal(rawData, 'photo', 'image', 'profile_image');
+      const house = xmlData.house || getVal(rawData, 'house');
+      const street = xmlData.street || getVal(rawData, 'street');
+      const landmark = xmlData.landmark || getVal(rawData, 'landmark');
+      const locality = xmlData.locality || xmlData.loc || getVal(rawData, 'locality');
+      const vtc = xmlData.vtc || getVal(rawData, 'vtc', 'subdistrict');
+      const district = xmlData.district || xmlData.dist || getVal(rawData, 'district');
+      const state = xmlData.state || getVal(rawData, 'state');
+      const rawStatus = getVal(rawData, 'status');
 
       return {
         cardType: 'AADHAAR_CARD',
@@ -301,9 +321,17 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         gender: gender === 'M' ? 'MALE' : gender === 'F' ? 'FEMALE' : (gender ? String(gender).toUpperCase() : null),
         zip: zip || null,
         address: fullAddress || null,
+        house: house || null,
+        street: street || null,
+        landmark: landmark || null,
+        locality: locality || null,
+        vtc: vtc || null,
+        district: district || null,
+        state: state || null,
+        photo: photo || null,
         xmlUrl: xmlUrl || null,
         clientId: clientId || null,
-        status: isSuccess ? 'OFFICIAL UIDAI e-KYC VERIFIED' : 'AUTH PENDING',
+        status: rawStatus ? String(rawStatus).toUpperCase() : (isSuccess ? 'VERIFIED' : 'PENDING'),
         issuer: 'UNIQUE IDENTIFICATION AUTHORITY OF INDIA (UIDAI)'
       };
     }
@@ -317,21 +345,26 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       const ifsc = getVal(rawData, 'ifsc', 'ifsc_code') || inputParams.ifsc;
       const branch = getVal(rawData, 'branch', 'branch_name');
       const city = getVal(rawData, 'city', 'district');
+      const state = getVal(rawData, 'state');
       const accountStatus = getVal(rawData, 'account_status', 'status');
-      const referenceId = getVal(rawData, 'reference_id', 'ref_id', 'client_ref_num');
+      const referenceId = getVal(rawData, 'reference_id', 'ref_id', 'client_ref_num', 'utr', 'rrn');
+      const matchScore = getVal(rawData, 'name_match_score', 'match_score');
+      const rawStatus = getVal(rawData, 'status');
 
       return {
         cardType: 'BANK_ACCOUNT_CARD',
-        accountNumber: accNum,
-        accountMasked: maskedAcc,
+        accountNumber: accNum || null,
+        accountMasked: maskedAcc || null,
         beneficiaryName: beneficiary ? String(beneficiary).toUpperCase() : null,
         bankName: bankName ? String(bankName).toUpperCase() : null,
         ifsc: ifsc ? String(ifsc).toUpperCase() : null,
         branch: branch ? String(branch).toUpperCase() : null,
         city: city ? String(city).toUpperCase() : null,
-        accountStatus: accountStatus || (isSuccess ? 'ACTIVE' : 'UNVERIFIED'),
+        state: state ? String(state).toUpperCase() : null,
+        accountStatus: accountStatus || (isSuccess ? 'ACTIVE' : null),
         referenceId: referenceId || null,
-        status: isSuccess ? 'ACTIVE • CBS VALIDATED' : 'UNVERIFIED',
+        matchScore: matchScore || null,
+        status: rawStatus ? String(rawStatus).toUpperCase() : (isSuccess ? 'CBS VALIDATED' : 'UNVERIFIED'),
         issuer: 'RESERVE BANK OF INDIA • CBS NETWORK'
       };
     }
@@ -347,10 +380,14 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       const district = getVal(rawData, 'district', 'DISTRICT');
       const state = getVal(rawData, 'state', 'STATE');
       const micr = getVal(rawData, 'micr', 'micr_code', 'MICR');
+      const swift = getVal(rawData, 'swift', 'SWIFT');
+      const centre = getVal(rawData, 'centre', 'CENTRE');
+      const bankCode = getVal(rawData, 'bank_code', 'BANKCODE');
       const neft = getVal(rawData, 'neft', 'NEFT');
       const rtgs = getVal(rawData, 'rtgs', 'RTGS');
       const imps = getVal(rawData, 'imps', 'IMPS');
       const upi = getVal(rawData, 'upi', 'UPI');
+      const rawStatus = getVal(rawData, 'status');
 
       return {
         cardType: 'IFSC_DIRECTORY_CARD',
@@ -363,11 +400,14 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         district: district || null,
         state: state || null,
         micr: micr || null,
-        neft: neft === true || neft === 'true' || neft === 1 || neft === '1' || neft === 'YES',
-        rtgs: rtgs === true || rtgs === 'true' || rtgs === 1 || rtgs === '1' || rtgs === 'YES',
-        imps: imps === true || imps === 'true' || imps === 1 || imps === '1' || imps === 'YES',
-        upi: upi === true || upi === 'true' || upi === 1 || upi === '1' || upi === 'YES',
-        status: isSuccess ? 'RBI VERIFIED BRANCH' : 'LOOKUP FAILED',
+        swift: swift || null,
+        centre: centre || null,
+        bankCode: bankCode || null,
+        neft: neft !== null && neft !== undefined ? Boolean(neft === true || neft === 'true' || neft === 1 || neft === '1' || neft === 'YES') : null,
+        rtgs: rtgs !== null && rtgs !== undefined ? Boolean(rtgs === true || rtgs === 'true' || rtgs === 1 || rtgs === '1' || rtgs === 'YES') : null,
+        imps: imps !== null && imps !== undefined ? Boolean(imps === true || imps === 'true' || imps === 1 || imps === '1' || imps === 'YES') : null,
+        upi: upi !== null && upi !== undefined ? Boolean(upi === true || upi === 'true' || upi === 1 || upi === '1' || upi === 'YES') : null,
+        status: rawStatus ? String(rawStatus).toUpperCase() : (isSuccess ? 'RBI VERIFIED' : 'FAILED'),
         issuer: 'RESERVE BANK OF INDIA • IFSC DIRECTORY'
       };
     }
@@ -378,15 +418,24 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       const uan = getVal(rawData, 'uan', 'uan_number');
       const memberName = getVal(rawData, 'member_name', 'name', 'fullname');
       const employer = getVal(rawData, 'employer', 'establishment_name');
+      const fatherName = getVal(rawData, 'father_name', 'fathername');
+      const dob = getVal(rawData, 'dob');
+      const gender = getVal(rawData, 'gender');
+      const clientRefNum = getVal(rawData, 'client_ref_num', 'request_id');
+      const rawStatus = getVal(rawData, 'status');
 
       return {
         cardType: 'UAN_LOOKUP_CARD',
-        mobile,
+        mobile: mobile || null,
         uan: uan || null,
-        uanFormatted: uan && String(uan).length === 12 ? String(uan).replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3') : uan,
+        uanFormatted: uan && String(uan).length === 12 ? String(uan).replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3') : (uan || null),
         memberName: memberName ? String(memberName).toUpperCase() : null,
+        fatherName: fatherName ? String(fatherName).toUpperCase() : null,
+        dob: dob || null,
+        gender: gender || null,
         employer: employer ? String(employer).toUpperCase() : null,
-        status: isSuccess ? 'UAN RECORD FOUND' : 'NO UAN RECORD',
+        clientRefNum: clientRefNum || null,
+        status: rawStatus ? String(rawStatus).toUpperCase() : (isSuccess ? 'RECORD FOUND' : 'NOT FOUND'),
         issuer: 'EMPLOYEES PROVIDENT FUND ORGANISATION (EPFO)'
       };
     }
@@ -399,17 +448,21 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       
       const memberName = getVal(rawData, 'member_name', 'fullname', 'name');
       const employer = recentEmployerData.establishment_name || getVal(rawData, 'establishment_name', 'employer', 'company');
-      const memberId = getVal(rawData, 'member_id');
+      const memberId = recentEmployerData.member_id || getVal(rawData, 'member_id');
       const totalServiceMonths = summary.total_service_months || getVal(rawData, 'total_service_months');
       const doj = recentEmployerData.doj || getVal(rawData, 'doj', 'date_of_joining');
       const doe = recentEmployerData.doe || getVal(rawData, 'doe', 'date_of_exit');
       const fatherName = getVal(rawData, 'father_name');
       const monthlyPfAmount = getVal(rawData, 'monthly_pf_amount');
+      const rawEstablishments = summary?.establishment_data || rawData?.data?.establishments || rawData?.establishments || [];
+      const establishments = Array.isArray(rawEstablishments) ? rawEstablishments : [];
+      const clientRefNum = getVal(rawData, 'client_ref_num', 'request_id');
+      const rawStatus = getVal(rawData, 'status');
 
       return {
         cardType: 'UAN_HISTORY_CARD',
-        uan,
-        uanFormatted: uan && String(uan).length === 12 ? String(uan).replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3') : uan,
+        uan: uan || null,
+        uanFormatted: uan && String(uan).length === 12 ? String(uan).replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3') : (uan || null),
         memberName: memberName ? String(memberName).toUpperCase() : null,
         fatherName: fatherName ? String(fatherName).toUpperCase() : null,
         employer: employer ? String(employer).toUpperCase() : null,
@@ -418,7 +471,9 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         monthlyPfAmount: monthlyPfAmount || null,
         doj: doj || null,
         doe: doe || null,
-        status: isSuccess ? 'PASSBOOK SERVICE ACTIVE' : 'LOOKUP FAILED',
+        establishments,
+        clientRefNum: clientRefNum || null,
+        status: rawStatus ? String(rawStatus).toUpperCase() : (isSuccess ? 'ACTIVE' : 'NOT FOUND'),
         issuer: 'EMPLOYEES PROVIDENT FUND ORGANISATION (EPFO)'
       };
     }
@@ -432,13 +487,17 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       const age = getVal(rawData, 'age');
       const gender = getVal(rawData, 'gender');
       const email = getVal(rawData, 'email');
-      const addresses = getVal(rawData, 'address') || [];
-      const references = getVal(rawData, 'references') || [];
-      const clientRefNum = getVal(rawData, 'client_ref_num');
+      const addresses = getVal(rawData, 'address', 'addresses', 'addressList') || [];
+      const references = getVal(rawData, 'references', 'reference_list') || [];
+      const clientRefNum = getVal(rawData, 'client_ref_num', 'clientRefNum');
+      const requestId = getVal(rawData, 'request_id', 'requestId');
+      const resultCode = getVal(rawData, 'result_code', 'resultCode');
+      const message = getVal(rawData, 'idspay_message', 'message');
+      const rawStatus = getVal(rawData, 'status');
 
       return {
         cardType: 'TELECOM_CARD',
-        mobile: mob,
+        mobile: mob || null,
         mobileFormatted: mob ? '+91 ' + String(mob).slice(-10) : null,
         name: name ? String(name).toUpperCase() : null,
         pan: panNum ? String(panNum).toUpperCase() : null,
@@ -446,10 +505,13 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         age: age || null,
         gender: gender ? String(gender).toUpperCase() : null,
         email: email || null,
-        addressList: Array.isArray(addresses) ? addresses : [],
+        addressList: Array.isArray(addresses) ? addresses : (addresses ? [addresses] : []),
         references: Array.isArray(references) ? references : [],
         clientRefNum: clientRefNum || null,
-        status: isSuccess ? 'SUBSCRIBER ACTIVE' : 'PREFILL UNAVAILABLE',
+        requestId: requestId || null,
+        resultCode: resultCode || null,
+        message: message || null,
+        status: rawStatus ? String(rawStatus).toUpperCase() : (isSuccess ? 'SUBSCRIBER ACTIVE' : 'UNAVAILABLE'),
         issuer: 'TRAI • CARRIER DEMOGRAPHICS'
       };
     }
@@ -457,7 +519,7 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
     // 9. IP Fraud & Geolocation Risk
     case 'ip-fraud-geolocation': {
       const ip = rawData.ip || getVal(rawData, 'ip', 'ip_address') || inputParams.ip;
-      const ipType = rawData.type || getVal(rawData, 'type') || 'IPv4';
+      const ipType = rawData.type || getVal(rawData, 'type') || null;
       const continent = rawData.continent_name ? `${rawData.continent_name}${rawData.continent_code ? ` (${rawData.continent_code})` : ''}` : getVal(rawData, 'continent_name');
       const country = rawData.country_name ? `${rawData.country_name}${rawData.country_code ? ` (${rawData.country_code})` : ''}` : getVal(rawData, 'country_name', 'country');
       const region = rawData.region_name ? `${rawData.region_name}${rawData.region_code ? ` (${rawData.region_code})` : ''}` : getVal(rawData, 'region_name', 'region');
@@ -490,21 +552,22 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       const asn = rawData.asn || getVal(rawData, 'asn');
       const riskScore = getVal(rawData, 'risk_score', 'fraud_score');
       const vpn = getVal(rawData, 'vpn', 'proxy');
+      const rawStatus = getVal(rawData, 'status');
 
       return {
         cardType: 'IP_FRAUD_CARD',
-        ip,
+        ip: ip || null,
         ipType,
-        continent,
-        country,
-        region,
-        city,
-        zip,
+        continent: continent || null,
+        country: country || null,
+        region: region || null,
+        city: city || null,
+        zip: zip || null,
         latitude: lat,
         longitude: lon,
-        routingType,
-        connectionType,
-        capital,
+        routingType: routingType || null,
+        connectionType: connectionType || null,
+        capital: capital || null,
         flagEmoji,
         flagUrl,
         callingCode,
@@ -513,7 +576,7 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         asn: asn || null,
         riskScore: riskScore !== null && riskScore !== undefined ? `${riskScore} / 100` : null,
         vpn: vpn !== null && vpn !== undefined ? (vpn === true ? 'Proxy / VPN Detected' : 'Clean Residential IP') : null,
-        status: isSuccess ? 'GEOLOCATION & RISK CERTIFIED' : 'LOOKUP FAILED',
+        status: rawStatus ? String(rawStatus).toUpperCase() : (isSuccess ? 'VERIFIED' : 'FAILED'),
         issuer: 'CYBER GEOLOCATION & THREAT INTELLIGENCE'
       };
     }
@@ -536,12 +599,13 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       const state = nestedAddr.state || getVal(rawData, 'state') || null;
       const postcode = nestedAddr.postcode || getVal(rawData, 'postcode', 'pincode', 'pin') || null;
       const country = nestedAddr.country || getVal(rawData, 'country') || null;
-      const countryCode = (nestedAddr.country_code || getVal(rawData, 'country_code') || '').toUpperCase();
+      const countryCode = (nestedAddr.country_code || getVal(rawData, 'country_code') || '').toUpperCase() || null;
       const placeId = rawData.place_id || null;
       const osmType = rawData.osm_type || null;
       const osmId = rawData.osm_id || null;
       const addressType = rawData.addresstype || rawData.type || null;
       const boundingBox = rawData.boundingbox || null;
+      const rawStatus = getVal(rawData, 'status');
 
       const satelliteEmbedUrl = (lat !== null && lon !== null && !isNaN(lat) && !isNaN(lon))
         ? `https://maps.google.com/maps?q=${lat},${lon}&t=h&z=17&ie=UTF8&iwloc=&output=embed`
@@ -572,7 +636,7 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         boundingBox,
         satelliteEmbedUrl,
         googleMapsUrl,
-        status: isSuccess ? 'DOORSTEP GPS VERIFIED' : 'LOOKUP FAILED',
+        status: rawStatus ? String(rawStatus).toUpperCase() : (isSuccess ? 'GPS VERIFIED' : 'FAILED'),
         issuer: 'OPENSTREETMAP • SATELLITE GEODYNAMICS'
       };
     }
@@ -590,6 +654,9 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       const registrar = getVal(rawData, 'registrar');
       const mxValid = getVal(rawData, 'mx_valid');
       const mxRecords = getVal(rawData, 'mx_records') || [];
+      const nameservers = getVal(rawData, 'nameservers', 'name_servers') || [];
+      const whoisServer = getVal(rawData, 'whois_server', 'whoisServer');
+      const rawStatus = getVal(rawData, 'status');
 
       return {
         cardType: 'DOMAIN_CARD',
@@ -598,9 +665,11 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         createdDate: createdDate || null,
         expiryDate: expiryDate || null,
         registrar: registrar || null,
-        mxValid: mxValid !== false && mxValid !== 0,
+        mxValid: mxValid !== null && mxValid !== undefined ? (mxValid !== false && mxValid !== 0) : null,
         mxRecords: Array.isArray(mxRecords) ? mxRecords : [],
-        status: isSuccess ? 'DOMAIN & MX VERIFIED' : 'DOMAIN UNVERIFIED',
+        nameservers: Array.isArray(nameservers) ? nameservers : [],
+        whoisServer: whoisServer || null,
+        status: rawStatus ? String(rawStatus).toUpperCase() : (isSuccess ? 'VERIFIED' : 'UNVERIFIED'),
         issuer: 'ICANN REGISTRY'
       };
     }

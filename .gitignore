@@ -27,4 +27,22 @@ Thumbs.db
 # System temp / scratch
 stitch_raw/
 *.log
+*.pdf
+**/*.pdf
+server/src/utils/divyesh_*
+server/src/utils/suyog_*
+server/src/utils/all_29_*
+server/src/utils/check_*
+server/src/utils/decode_*
+server/src/utils/extract_*
+server/src/utils/extracted_*
+server/src/utils/generate_*
+server/src/utils/inspect_*
+server/src/utils/output_*
+server/src/utils/print_*
+server/src/utils/reconstruct_*
+server/src/utils/repair_*
+server/src/utils/input_*
+server/src/utils/test_*
+server/src/utils/testRunner.js
 

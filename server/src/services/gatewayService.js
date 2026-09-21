@@ -6,9 +6,9 @@
 
 const getBharatCloudCreds = () => ({
   baseUrl: process.env.GATEWAY_BASE_URL || 'https://brown-goldfish-546701.hostingersite.com',
-  api_id: process.env.GATEWAY_API_ID || 'APIDF8FCBC',
-  api_key: process.env.GATEWAY_API_KEY || '1beb7649-c12b-4154-a3a5-afc9acee8e1f',
-  token_id: process.env.GATEWAY_TOKEN_ID || 'NbN2p9IWr-u5iBO0fwbfdXaOkBB_LXHs'
+  api_id: process.env.GATEWAY_API_ID || 'APID6C2AA4',
+  api_key: process.env.GATEWAY_API_KEY || '8c84483d-fe3f-4e08-96d1-6f28b695ccb7',
+  token_id: process.env.GATEWAY_TOKEN_ID || 'XRGuIXciTUNC8jFKoBzR5jVgR35BAmBL'
 });
 
 const getIdspayCreds = () => ({
@@ -209,8 +209,8 @@ export const gatewayService = {
       api_id: creds.api_id,
       api_key: creds.api_key,
       token_id: creds.token_id,
-      lat: parseFloat(params.lat ?? params.latitude ?? 28.6139),
-      lon: parseFloat(params.lon ?? params.longitude ?? 77.2090)
+      lat: parseFloat(params.lat ?? params.latitude ?? 0),
+      lon: parseFloat(params.lon ?? params.longitude ?? 0)
     };
     return await callGatewayPost(url, payload);
   },
@@ -229,22 +229,30 @@ export const gatewayService = {
     return await callGatewayPost(url, payload);
   },
 
-  // 12. IDSPay CIBIL / TransUnion Credit Report (PDF Download)
-  // Route: /srv2/credit-report/transunion-pdf
+  // 12. CIBIL TransUnion Credit PDF (Generated via /srv5/transunion-Score-Hybrid)
+  // Route: /srv5/transunion-Score-Hybrid
   async getCibilTransunionPdf(params = {}) {
     const creds = getIdspayCreds();
-    const url = `${creds.baseUrl}/srv2/credit-report/transunion-pdf`;
+    const url = `${creds.baseUrl}/srv5/transunion-Score-Hybrid`;
+    const nameParts = (params.name || '').trim().split(/\s+/);
+    const forename = (params.forename || params.first_name || params.firstName || nameParts[0] || '').toUpperCase().trim();
+    const surname = (params.surname || params.last_name || params.lastName || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : forename)).toUpperCase().trim();
+    const phone = (params.phone_number || params.mobile_number || params.mobile || params.mobile_no || params.mobileNumber || params.phone || '').replace(/\D/g, '').slice(-10);
+    const panId = (params.pan_id || params.pan || params.panNumber || '').toUpperCase().trim();
+    const dob = params.date_of_birth || params.dob || '';
+
     const payload = {
       api_id: creds.api_id,
       api_key: creds.api_key,
       token_id: creds.token_id,
-      name: (params.name || (params.first_name ? `${params.first_name} ${params.last_name || ''}` : '') || (params.forename ? `${params.forename} ${params.surname || ''}` : '') || '').toUpperCase().trim(),
-      mobile: (params.mobile || params.mobile_no || params.mobile_number || params.mobileNumber || params.phone || params.phone_number || '').replace(/\D/g, '').slice(-10),
-      pan: (params.pan || params.panNumber || params.pan_id || '').toUpperCase().trim(),
-      gender: params.gender || 'male',
-      consent: params.consent || 'Y'
+      forename,
+      surname,
+      phone_number: phone,
+      gender: params.gender || 'Male',
+      pan_id: panId,
+      dob: dob || ''
     };
-    return await callGatewayPost(url, payload, 25000);
+    return await callGatewayPost(url, payload, 30000);
   },
 
   // 13. IDSPay TransUnion Hybrid Score (V5)
@@ -267,7 +275,7 @@ export const gatewayService = {
       phone_number: phone,
       gender: params.gender || 'Male',
       pan_id: panId,
-      dob: params.dob || '1995-05-15'
+      dob: params.dob || ''
     };
     return await callGatewayPost(url, payload, 25000);
   },
@@ -291,7 +299,7 @@ export const gatewayService = {
       pan,
       first_name: firstName,
       last_name: lastName,
-      dob: params.dob || '1995-05-15'
+      dob: params.dob || ''
     };
     return await callGatewayPost(url, payload, 25000);
   },

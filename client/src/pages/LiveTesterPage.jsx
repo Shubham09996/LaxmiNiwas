@@ -314,7 +314,7 @@ export default function LiveTesterPage() {
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
-                Set customer credentials once here. All 15 API tests will automatically use these values as placeholders.
+                Set customer credentials once here. All 14 API tests will automatically use these values as placeholders.
               </p>
             </div>
           </div>
@@ -338,7 +338,7 @@ export default function LiveTesterPage() {
           <div>
             <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
               <span>Full Name</span>
-              <span className="text-[9px] text-indigo-400 font-mono">15 APIs</span>
+              <span className="text-[9px] text-indigo-400 font-mono">14 APIs</span>
             </label>
             <input
               type="text"
@@ -401,30 +401,30 @@ export default function LiveTesterPage() {
       </div>
 
       {/* Main Single Workspace Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         
-        {/* Left Column: 15-API Selector & Gateway Filter (5 Cols) */}
-        <div className="lg:col-span-5 bg-slate-900/80 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl backdrop-blur-xl space-y-4">
+        {/* Left Column: 14-API Selector & Gateway Filter (4 Cols - Sticky) */}
+        <div className="lg:col-span-4 sticky top-4 self-start bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl backdrop-blur-xl space-y-3.5">
           
           {/* Search & Filter Header */}
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search 15 APIs (e.g. pan, uan, cibil, ifsc)..."
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none transition-all shadow-inner"
+                placeholder="Search 14 APIs (pan, uan, cibil)..."
+                className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition-all shadow-inner"
               />
             </div>
 
             {/* Gateway Filter Tabs */}
-            <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-950 rounded-2xl border border-slate-800 text-[11px] font-bold">
+            <div className="grid grid-cols-3 gap-1 p-1 bg-slate-950 rounded-xl border border-slate-800 text-[10px] font-bold">
               <button
                 type="button"
                 onClick={() => setActiveCategoryFilter('ALL')}
-                className={`py-1.5 rounded-xl transition-all ${
+                className={`py-1 rounded-lg transition-all text-center ${
                   activeCategoryFilter === 'ALL'
                     ? 'bg-indigo-600 text-white shadow-glow-indigo'
                     : 'text-slate-400 hover:text-white'
@@ -435,30 +435,30 @@ export default function LiveTesterPage() {
               <button
                 type="button"
                 onClick={() => setActiveCategoryFilter('IDENTITY')}
-                className={`py-1.5 rounded-xl transition-all ${
+                className={`py-1 rounded-lg transition-all text-center ${
                   activeCategoryFilter === 'IDENTITY'
                     ? 'bg-indigo-600 text-white shadow-glow-indigo'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Identity & Banking (11)
+                Identity (11)
               </button>
               <button
                 type="button"
                 onClick={() => setActiveCategoryFilter('BUREAU')}
-                className={`py-1.5 rounded-xl transition-all ${
+                className={`py-1 rounded-lg transition-all text-center ${
                   activeCategoryFilter === 'BUREAU'
                     ? 'bg-indigo-600 text-white shadow-glow-indigo'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Credit Bureau (4)
+                Bureau (3)
               </button>
             </div>
           </div>
 
-          {/* 15 API List Items */}
-          <div className="space-y-2 max-h-[580px] overflow-y-auto pr-1">
+          {/* 14 API List Items */}
+          <div className="space-y-1.5 max-h-[calc(100vh-14rem)] overflow-y-auto pr-1">
             {filteredApis.map((apiItem) => {
               const isSelected = apiItem.id === selectedApiId;
               const IconComponent = iconMap[apiItem.icon] || Layers;
@@ -467,14 +467,14 @@ export default function LiveTesterPage() {
                 <button
                   key={apiItem.id}
                   onClick={() => handleSelectApi(apiItem.id)}
-                  className={`w-full p-3 rounded-2xl text-left border transition-all flex items-center justify-between gap-3 group ${
+                  className={`w-full p-2.5 rounded-xl text-left border transition-all flex items-center justify-between gap-2.5 group ${
                     isSelected
-                      ? 'bg-indigo-950/70 border-indigo-500 shadow-glow-indigo ring-1 ring-indigo-500/50'
+                      ? 'bg-indigo-950/80 border-indigo-500 shadow-glow-indigo ring-1 ring-indigo-500/50'
                       : 'bg-slate-950/60 hover:bg-slate-900/80 border-slate-800/80 hover:border-slate-700 text-slate-300'
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-mono font-bold flex-shrink-0 border ${
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-mono font-bold flex-shrink-0 border ${
                       isSelected
                         ? 'bg-indigo-600 border-indigo-400 text-white shadow-glow-indigo'
                         : 'bg-slate-900 border-slate-800 text-slate-400 group-hover:text-white'
@@ -483,23 +483,20 @@ export default function LiveTesterPage() {
                     </div>
 
                     <div className="min-w-0">
-                      <span className={`text-xs font-bold block truncate ${
+                      <span className={`text-[11px] font-bold block truncate ${
                         isSelected ? 'text-white' : 'text-slate-200 group-hover:text-indigo-300'
                       }`}>
                         {apiItem.name}
                       </span>
-                      <span className="text-[10px] text-slate-500 block truncate font-mono">
+                      <span className="text-[9px] text-slate-500 block truncate font-mono">
                         {apiItem.tag}
                       </span>
                     </div>
                   </div>
 
                   <div className="text-right flex-shrink-0">
-                    <span className="text-xs font-extrabold font-mono text-emerald-400 block">
+                    <span className="text-[11px] font-extrabold font-mono text-emerald-400 block">
                       ₹ {apiItem.cost.toFixed(2)}
-                    </span>
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-indigo-300 bg-indigo-950/80 border border-indigo-500/30">
-                      {apiItem.category}
                     </span>
                   </div>
                 </button>
@@ -508,15 +505,15 @@ export default function LiveTesterPage() {
           </div>
         </div>
 
-        {/* Right Column: Execution Form & Real-time Visual Output (7 Cols) */}
-        <div className="lg:col-span-7 space-y-6">
+        {/* Right Column: Execution Form & Real-time Visual Output (8 Cols) */}
+        <div className="lg:col-span-8 space-y-5">
           
           {/* Selected API Execution Box */}
           {selectedApi && (
-            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-2xl backdrop-blur-xl space-y-5">
+            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl backdrop-blur-xl space-y-4">
               
               {/* Endpoint Header Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="px-2 py-0.5 rounded-md font-mono text-[10px] font-extrabold bg-indigo-950 text-indigo-300 border border-indigo-500/30 uppercase">
@@ -526,13 +523,13 @@ export default function LiveTesterPage() {
                       {selectedApi.name}
                     </h2>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1 font-medium leading-relaxed">
+                  <p className="text-xs text-slate-400 mt-0.5 font-medium leading-relaxed">
                     {selectedApi.description}
                   </p>
                 </div>
 
                 <div className="text-right flex-shrink-0">
-                  <span className="text-xs font-bold text-slate-500 block uppercase">Price</span>
+                  <span className="text-[10px] font-bold text-slate-500 block uppercase">Price</span>
                   <span className="font-mono text-sm font-extrabold text-emerald-400">
                     ₹ {selectedApi.cost.toFixed(2)} <span className="text-[10px] text-slate-500">incl. GST</span>
                   </span>

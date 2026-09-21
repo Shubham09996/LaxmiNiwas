@@ -199,54 +199,33 @@ export const ALL_APIS = [
     }
   },
 
-  // --- BHARAT CLOUD CREDIT BUREAU (4 APIS) ---
+  // --- BHARAT CLOUD / IDSPAY CREDIT BUREAU (3 APIS) ---
   {
     id: 'cibil-transunion-pdf',
     num: 12,
     name: 'CIBIL TransUnion Credit PDF',
     category: 'Credit Bureau',
-    gateway: 'Bharat Cloud',
+    gateway: 'IDSPay',
     baseCost: 75.00,
     gst: 13.50,
     cost: 88.50,
     icon: 'TrendingUp',
-    tag: 'Bharat Cloud • TransUnion',
-    description: 'Official TransUnion comprehensive bureau credit file and encrypted PDF report download.',
-    details: '/srv2/credit-report/transunion-pdf • POST • Bharat Cloud',
-    fixedRules: 'consent="Y" • gender="male"',
+    tag: 'IDSPay • TransUnion',
+    description: 'Official TransUnion comprehensive bureau file, 36-month repayment track, and instant PDF report generation.',
+    details: '/srv5/transunion-Score-Hybrid • POST • IDSPay',
+    fixedRules: 'gender="Male" • DOB supported',
     sampleInput: {
-      name: 'SHUBHAM GUPTA',
-      mobile: '9876543210',
-      pan: 'AAACL7821M',
-      gender: 'male'
-    }
-  },
-  {
-    id: 'cibil-transunion-v5',
-    num: 13,
-    name: 'TransUnion Hybrid Score (V5)',
-    category: 'Credit Bureau',
-    gateway: 'Bharat Cloud',
-    baseCost: 35.00,
-    gst: 6.30,
-    cost: 41.30,
-    icon: 'TrendingUp',
-    tag: 'Bharat Cloud • TransUnion',
-    description: 'High-precision algorithmic credit assessment, inquiry count, and delinquency forecast.',
-    details: '/srv5/transunion-Score-Hybrid • POST • Bharat Cloud',
-    fixedRules: 'dob="1995-01-01" fallback • gender="Male"',
-    sampleInput: {
-      forename: 'SHUBHAM',
-      surname: 'GUPTA',
-      phone_number: '9876543210',
+      forename: 'PRADEEP',
+      surname: 'KUMAR',
+      phone_number: '8976543210',
       pan_id: 'AAACL7821M',
       gender: 'Male',
-      dob: '1995-01-01'
+      date_of_birth: '1960-05-30'
     }
   },
   {
     id: 'experian-credit-report',
-    num: 14,
+    num: 13,
     name: 'Experian Credit Bureau Report',
     category: 'Credit Bureau',
     gateway: 'Bharat Cloud',
@@ -268,7 +247,7 @@ export const ALL_APIS = [
   },
   {
     id: 'crif-credit-score-v4',
-    num: 15,
+    num: 14,
     name: 'CRIF HighMark Credit Score (V4)',
     category: 'Credit Bureau',
     gateway: 'Bharat Cloud',
@@ -288,10 +267,10 @@ export const ALL_APIS = [
   }
 ];
 
-export const TOTAL_BASE_COST = 189.59;
-export const TOTAL_GST = 34.12;
-export const TOTAL_COST_WITH_GST = 223.71;
-export const TOTAL_COST_PER_CUSTOMER = 223.71;
+export const TOTAL_BASE_COST = 154.59;
+export const TOTAL_GST = 27.82;
+export const TOTAL_COST_WITH_GST = 182.41;
+export const TOTAL_COST_PER_CUSTOMER = 182.41;
 export const SERVICES_CATALOG = ALL_APIS;
 export const API_STAGES = {};
 

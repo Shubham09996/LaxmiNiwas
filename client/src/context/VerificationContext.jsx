@@ -77,21 +77,22 @@ export function VerificationProvider({ children }) {
           throw new Error(`Unsupported verification service type: ${serviceType}`);
       }
 
-      if (res.success && res.data) {
-        const newDossier = res.data;
-        setDossiers(prev => [newDossier, ...prev]);
+      if (res.success || res.isLiveGateway) {
+        const newDossier = res.data || res;
+        const displayName = res.visualData?.name || res.visualData?.beneficiaryName || res.visualData?.memberName || newDossier.entityName || res.apiName || 'Verification Result';
+        setDossiers(prev => [res, ...prev]);
 
         addToast({
-          title: 'Verification Certified',
-          message: `Dossier ${newDossier.refId} successfully generated for ${newDossier.entityName}.`,
-          type: 'success'
+          title: res.success ? 'Verification Certified' : 'Gateway Response Received',
+          message: `${res.apiName || 'Service'} executed in ${res.latencyMs || 0}ms.`,
+          type: res.success ? 'success' : 'warning'
         });
 
         // Refresh metrics & logs
         api.getMetrics().then(m => m?.data && setMetrics(m.data)).catch(() => {});
         api.getAuditLogs().then(a => a?.data && setAuditLogs(a.data)).catch(() => {});
 
-        return newDossier;
+        return res;
       }
     } catch (err) {
       addToast({

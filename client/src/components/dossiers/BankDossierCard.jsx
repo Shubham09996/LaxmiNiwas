@@ -28,32 +28,32 @@ export default function BankDossierCard({ dossier }) {
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Bank & Branch</span>
-            <span className="text-xs font-bold text-slate-800 block mt-0.5">{details.bankName || 'HDFC Bank Ltd'}</span>
-            <span className="text-[11px] text-slate-500 block">{details.branchName || 'Main Branch'}</span>
+            <span className="text-xs font-bold text-slate-800 block mt-0.5">{details.bankName || '—'}</span>
+            {details.branchName && <span className="text-[11px] text-slate-500 block">{details.branchName}</span>}
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">IFSC Code</span>
-            <span className="text-sm font-mono font-bold text-slate-800 block mt-0.5">{details.ifscCode || 'HDFC0000060'}</span>
+            <span className="text-sm font-mono font-bold text-slate-800 block mt-0.5">{details.ifscCode || details.ifsc || '—'}</span>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60 md:col-span-2">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Name as per Bank Records</span>
-            <span className="text-xs font-bold text-slate-900 block mt-0.5">{details.beneficiaryNameCBS || dossier.entityName}</span>
+            <span className="text-xs font-bold text-slate-900 block mt-0.5">{details.beneficiaryNameCBS || details.beneficiaryName || dossier.entityName || '—'}</span>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Name Match</span>
-            <span className="text-sm font-bold text-emerald-600 block mt-0.5">100% Exact Match</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Account Status</span>
+            <span className="text-sm font-bold text-emerald-600 block mt-0.5">{details.accountStatus || 'Active & Validated'}</span>
           </div>
         </div>
 
         <div className="mt-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span className="font-bold text-emerald-900">₹1.00 Penny Test: Successful & Active</span>
+            <span className="font-bold text-emerald-900">CBS Status: {details.status || 'Active & Operational'}</span>
           </div>
-          <span className="font-mono text-[11px] text-emerald-700">Ref: {details.npciRrn || '626109481920'}</span>
+          {details.npciRrn && <span className="font-mono text-[11px] text-emerald-700">Ref: {details.npciRrn}</span>}
         </div>
       </div>
     </div>

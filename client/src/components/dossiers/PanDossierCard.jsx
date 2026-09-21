@@ -56,7 +56,7 @@ export default function PanDossierCard({ dossier }) {
               Full Legal Name
             </span>
             <span className="text-sm font-bold text-slate-900 block mt-1 leading-snug">
-              {details.holderName || dossier.entityName}
+              {details.holderName || dossier.entityName || '—'}
             </span>
             <span className="text-xs text-slate-500 block mt-1">
               Holder Type: <strong className="text-slate-700">{details.panType || 'Individual'}</strong>
@@ -68,11 +68,13 @@ export default function PanDossierCard({ dossier }) {
               Date of Birth / Setup Date
             </span>
             <span className="text-sm font-bold text-slate-900 block mt-1">
-              {details.dateOfIncorporation || details.dateOfBirth || '1994-08-15'}
+              {details.dateOfIncorporation || details.dateOfBirth || '—'}
             </span>
-            <span className="text-xs text-emerald-600 font-semibold block mt-1">
-              ✓ Date Matched
-            </span>
+            {Boolean(details.dateOfIncorporation || details.dateOfBirth) && (
+              <span className="text-xs text-emerald-600 font-semibold block mt-1">
+                ✓ Verified
+              </span>
+            )}
           </div>
 
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/70">
@@ -80,10 +82,10 @@ export default function PanDossierCard({ dossier }) {
               Aadhaar Card Link
             </span>
             <span className="text-xs font-bold text-slate-800 block mt-1">
-              {details.aadhaarSeedingStatus || 'Linked with Aadhaar'}
+              {details.aadhaarSeedingStatus || (details.aadhaarLinked ? 'Linked' : 'Not Linked / N/A')}
             </span>
             <span className="text-[11px] text-emerald-600 block mt-0.5">
-              ✓ Government Verified
+              ✓ Status Recorded
             </span>
           </div>
 
@@ -92,11 +94,13 @@ export default function PanDossierCard({ dossier }) {
               Tax Ward / Location
             </span>
             <span className="text-xs font-bold text-slate-800 block mt-1">
-              {details.jurisdiction || 'NEW DELHI CENTRAL'}
+              {details.jurisdiction || '—'}
             </span>
-            <span className="text-[11px] text-slate-500 block mt-0.5">
-              Ward Code: {details.aoCode || 'DLC-W-03-2'}
-            </span>
+            {details.aoCode && (
+              <span className="text-[11px] text-slate-500 block mt-0.5">
+                Ward Code: {details.aoCode}
+              </span>
+            )}
           </div>
 
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/70">

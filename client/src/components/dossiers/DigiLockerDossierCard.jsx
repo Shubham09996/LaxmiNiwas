@@ -70,7 +70,7 @@ export default function DigiLockerDossierCard({ dossier }) {
                 Date of Birth & Gender
               </span>
               <span className="text-xs font-bold text-slate-900 block mt-0.5">
-                {details.dateOfBirth || '1994-08-15'} ({details.gender || 'Male'})
+                {details.dateOfBirth || '—'} {details.gender ? `(${details.gender})` : ''}
               </span>
             </div>
 
@@ -79,7 +79,7 @@ export default function DigiLockerDossierCard({ dossier }) {
                 Father / Guardian Name
               </span>
               <span className="text-xs font-bold text-slate-900 block mt-0.5">
-                {details.careOf || 'Satish Kumar Agrawal'}
+                {details.careOf || '—'}
               </span>
             </div>
           </div>
@@ -94,14 +94,13 @@ export default function DigiLockerDossierCard({ dossier }) {
                 </span>
               </div>
               <p className="text-xs text-slate-800 leading-relaxed font-medium">
-                {addr.line1 || 'Flat 402, Laxmi Niwas Tower, Sector 62'}<br />
-                {addr.line2 || 'Institutional Area, Phase 2'}<br />
-                {addr.city || 'Noida'}, {addr.district || 'Gautam Buddha Nagar'}<br />
-                {addr.state || 'Uttar Pradesh'} — <strong className="font-mono text-brand-700">{addr.pincode || '201309'}</strong>
+                {addr.line1 || addr.address || (typeof details.address === 'string' ? details.address : '—')}<br />
+                {addr.line2 && <>{addr.line2}<br /></>}
+                {addr.city && `${addr.city}, `}{addr.district && `${addr.district}, `}{addr.state && addr.state} {addr.pincode && <strong className="font-mono text-brand-700">— {addr.pincode}</strong>}
               </p>
             </div>
             <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200 block text-center mt-3">
-              ✓ Address Verified with Government Records
+              ✓ Address Record
             </span>
           </div>
         </div>

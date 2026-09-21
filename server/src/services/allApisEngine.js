@@ -1,6 +1,8 @@
 import { ALL_APIS } from '../config/constants.js';
 import { gatewayService } from './gatewayService.js';
 import { buildEnrichedPayload } from '../utils/payloadBuilder.js';
+import { generateTransUnionPdfFromApiResponse } from '../utils/transunionPdfGenerator.js';
+import { generateCrifPdfFromApiResponse } from '../utils/crifPdfGenerator.js';
 
 export async function executeApiTest(apiId, rawInputParams = {}, req = null) {
   const foundApi = ALL_APIS.find(a => a.id === apiId);
@@ -38,32 +40,32 @@ export async function executeApiTest(apiId, rawInputParams = {}, req = null) {
       liveResult = await gatewayService.verifyBankAccount(inputParams);
       break;
 
-    // 5. Bank IFSC Code Lookup
-    case 'bank-ifsc-lookup':
+    // 5. IFSC Directory Lookup
+    case 'ifsc-lookup':
       liveResult = await gatewayService.lookupIfsc(inputParams);
       break;
 
-    // 6. EPFO / UAN Mobile Lookup
+    // 6. UAN Lookup (Mobile Number)
     case 'uan-lookup-mobile':
       liveResult = await gatewayService.lookupUanByMobile(inputParams);
       break;
 
-    // 7. UAN Direct Employment History
-    case 'uan-direct-history':
-      liveResult = await gatewayService.getUanHistory(inputParams);
+    // 7. UAN Employment History
+    case 'uan-employment-history':
+      liveResult = await gatewayService.fetchUanEmploymentHistory(inputParams);
       break;
 
-    // 8. Mobile Profile & Reference Prefill
-    case 'mobile-profile-prefill':
-      liveResult = await gatewayService.prefillMobileProfile(inputParams);
+    // 8. Telecom Mobile Identity
+    case 'telecom-mobile-identity':
+      liveResult = await gatewayService.verifyTelecomIdentity(inputParams);
       break;
 
-    // 9. IP Fraud & Geolocation Risk
+    // 9. IP Fraud & Geolocation
     case 'ip-fraud-geolocation':
-      liveResult = await gatewayService.lookupIpRisk(inputParams);
+      liveResult = await gatewayService.checkIpFraud(inputParams);
       break;
 
-    // 10. Reverse Geocoding (Coordinates)
+    // 10. Reverse Geocoding (Lat/Long)
     case 'reverse-geocoding':
       liveResult = await gatewayService.reverseGeocode(inputParams);
       break;
@@ -75,20 +77,16 @@ export async function executeApiTest(apiId, rawInputParams = {}, req = null) {
 
     // 12. CIBIL TransUnion Credit PDF
     case 'cibil-transunion-pdf':
+    case 'cibil-transunion-v5':
       liveResult = await gatewayService.getCibilTransunionPdf(inputParams);
       break;
 
-    // 13. TransUnion Hybrid Score (V5)
-    case 'cibil-transunion-v5':
-      liveResult = await gatewayService.getTransunionScoreHybrid(inputParams);
-      break;
-
-    // 14. Experian Credit Bureau Report
+    // 13. Experian Credit Bureau Report
     case 'experian-credit-report':
       liveResult = await gatewayService.getExperianReport(inputParams);
       break;
 
-    // 15. CRIF HighMark Credit Score (V4)
+    // 14. CRIF HighMark Credit Score (V4)
     case 'crif-credit-score-v4':
       liveResult = await gatewayService.getCrifCreditScore(inputParams);
       break;
@@ -101,7 +99,7 @@ export async function executeApiTest(apiId, rawInputParams = {}, req = null) {
   const rawData = liveResult?.data || {};
 
   // Build high-fidelity visual card data mapping for realistic UI renderers
-  const visualData = buildVisualData(foundApi.id, inputParams, rawData, isSuccess);
+  const visualData = await buildVisualData(foundApi.id, inputParams, rawData, isSuccess);
 
   return {
     success: isSuccess,
@@ -157,7 +155,7 @@ function getVal(src, ...keys) {
   return null;
 }
 
-function buildVisualData(apiId, inputParams, rawData, isSuccess) {
+async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
   switch (apiId) {
     // 1. PAN Card Verification
     case 'pan-advance': {
@@ -446,17 +444,26 @@ function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       const country = rawData.country_name ? `${rawData.country_name}${rawData.country_code ? ` (${rawData.country_code})` : ''}` : getVal(rawData, 'country_name', 'country');
       const region = rawData.region_name ? `${rawData.region_name}${rawData.region_code ? ` (${rawData.region_code})` : ''}` : getVal(rawData, 'region_name', 'region');
       const city = rawData.city || getVal(rawData, 'city');
-      const zip = rawData.zip || getVal(rawData, 'zip', 'postal', 'pincode');
+      const loc = (rawData.location && typeof rawData.location === 'object') ? rawData.location : {};
       const lat = rawData.latitude ?? getVal(rawData, 'latitude', 'lat');
       const lon = rawData.longitude ?? getVal(rawData, 'longitude', 'lon');
       const routingType = rawData.ip_routing_type || getVal(rawData, 'ip_routing_type');
       const connectionType = rawData.connection_type || getVal(rawData, 'connection_type');
-      
-      const loc = (rawData.location && typeof rawData.location === 'object') ? rawData.location : {};
+      const zip = rawData.zip ||
+        rawData.postal ||
+        rawData.pincode ||
+        rawData.postcode ||
+        rawData.postal_code ||
+        loc.zip ||
+        loc.postal ||
+        loc.postcode ||
+        loc.pincode ||
+        (rawData.data && (rawData.data.zip || rawData.data.postal || rawData.data.pincode || rawData.data.postcode)) ||
+        getVal(rawData, 'zip', 'postal', 'pincode', 'postcode', 'postal_code');
       const capital = loc.capital || getVal(rawData, 'capital');
-      const flagEmoji = loc.country_flag_emoji || rawData.country_flag_emoji || '🇮🇳';
-      const flagUrl = loc.country_flag || rawData.country_flag;
-      const callingCode = loc.calling_code ? `+${loc.calling_code}` : getVal(rawData, 'calling_code');
+      const flagEmoji = loc.country_flag_emoji || rawData.country_flag_emoji || null;
+      const flagUrl = loc.country_flag || rawData.country_flag || null;
+      const callingCode = loc.calling_code ? `+${loc.calling_code}` : (getVal(rawData, 'calling_code') ? `+${getVal(rawData, 'calling_code')}` : null);
       const languages = Array.isArray(loc.languages)
         ? loc.languages.map(l => (l.native && l.name && l.native !== l.name ? `${l.name} (${l.native})` : (l.name || l.code || l))).filter(Boolean)
         : [];
@@ -486,8 +493,8 @@ function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         languages,
         isp: isp || null,
         asn: asn || null,
-        riskScore: riskScore !== null ? `${riskScore} / 100` : (isSuccess ? '0 / 100 (Safe)' : null),
-        vpn: vpn === true ? 'Proxy / VPN Detected' : 'Clean Residential IP',
+        riskScore: riskScore !== null && riskScore !== undefined ? `${riskScore} / 100` : null,
+        vpn: vpn !== null && vpn !== undefined ? (vpn === true ? 'Proxy / VPN Detected' : 'Clean Residential IP') : null,
         status: isSuccess ? 'GEOLOCATION & RISK CERTIFIED' : 'LOOKUP FAILED',
         issuer: 'CYBER GEOLOCATION & THREAT INTELLIGENCE'
       };
@@ -495,28 +502,60 @@ function buildVisualData(apiId, inputParams, rawData, isSuccess) {
 
     // 10. Reverse Geocoding (Coordinates)
     case 'reverse-geocoding': {
-      const lat = getVal(rawData, 'lat', 'latitude') ?? inputParams.lat;
-      const lon = getVal(rawData, 'lon', 'longitude') ?? inputParams.lon;
-      const address = getVal(rawData, 'display_name', 'address', 'formatted_address');
+      const rawLat = getVal(rawData, 'lat', 'latitude') ?? inputParams.lat;
+      const rawLon = getVal(rawData, 'lon', 'longitude') ?? inputParams.lon;
+      const lat = rawLat !== undefined && rawLat !== null && rawLat !== '' ? parseFloat(rawLat) : null;
+      const lon = rawLon !== undefined && rawLon !== null && rawLon !== '' ? parseFloat(rawLon) : null;
+      
+      const displayName = getVal(rawData, 'display_name', 'formatted_address', 'address');
+      const placeName = getVal(rawData, 'name') || null;
       const nestedAddr = (rawData.address && typeof rawData.address === 'object') ? rawData.address : {};
-      const road = nestedAddr.road || getVal(rawData, 'road');
-      const postcode = nestedAddr.postcode || getVal(rawData, 'postcode', 'pincode', 'pin');
-      const city = nestedAddr.city || nestedAddr.town || nestedAddr.village || nestedAddr.suburb || getVal(rawData, 'city');
-      const state = nestedAddr.state || getVal(rawData, 'state');
-      const country = nestedAddr.country || getVal(rawData, 'country');
+      
+      const road = nestedAddr.road || getVal(rawData, 'road') || null;
+      const suburb = nestedAddr.suburb || nestedAddr.neighbourhood || nestedAddr.locality || nestedAddr.hamlet || null;
+      const city = nestedAddr.city || nestedAddr.town || nestedAddr.village || nestedAddr.county || getVal(rawData, 'city') || null;
+      const stateDistrict = nestedAddr.state_district || nestedAddr.district || null;
+      const state = nestedAddr.state || getVal(rawData, 'state') || null;
+      const postcode = nestedAddr.postcode || getVal(rawData, 'postcode', 'pincode', 'pin') || null;
+      const country = nestedAddr.country || getVal(rawData, 'country') || null;
+      const countryCode = (nestedAddr.country_code || getVal(rawData, 'country_code') || '').toUpperCase();
+      const placeId = rawData.place_id || null;
+      const osmType = rawData.osm_type || null;
+      const osmId = rawData.osm_id || null;
+      const addressType = rawData.addresstype || rawData.type || null;
+      const boundingBox = rawData.boundingbox || null;
+
+      const satelliteEmbedUrl = (lat !== null && lon !== null && !isNaN(lat) && !isNaN(lon))
+        ? `https://maps.google.com/maps?q=${lat},${lon}&t=h&z=17&ie=UTF8&iwloc=&output=embed`
+        : null;
+
+      const googleMapsUrl = (lat !== null && lon !== null && !isNaN(lat) && !isNaN(lon))
+        ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+        : null;
 
       return {
         cardType: 'GEO_REVERSE_CARD',
         lat,
         lon,
-        address: address || null,
-        road: road || null,
-        postcode: postcode || null,
-        city: city || null,
-        state: state || null,
-        country: country || null,
+        placeName,
+        address: displayName || null,
+        road,
+        suburb,
+        city,
+        stateDistrict,
+        state,
+        postcode,
+        country,
+        countryCode,
+        placeId,
+        osmType,
+        osmId,
+        addressType,
+        boundingBox,
+        satelliteEmbedUrl,
+        googleMapsUrl,
         status: isSuccess ? 'DOORSTEP GPS VERIFIED' : 'LOOKUP FAILED',
-        issuer: 'OPENSTREETMAP • POSTAL DIRECTORY'
+        issuer: 'OPENSTREETMAP • SATELLITE GEODYNAMICS'
       };
     }
 
@@ -550,11 +589,18 @@ function buildVisualData(apiId, inputParams, rawData, isSuccess) {
 
     // 12. CIBIL TransUnion Credit PDF
     case 'cibil-transunion-pdf': {
-      const name = getVal(rawData, 'name') || inputParams.name;
-      const pan = getVal(rawData, 'pan') || inputParams.pan;
-      const mobile = getVal(rawData, 'mobile') || inputParams.mobile;
-      const pdfUrl = getVal(rawData, 'pdf_url', 'report_url', 'url');
-      const refNo = getVal(rawData, 'ref_no', 'reference_no', 'client_ref_num');
+      let generatedPdf = null;
+      try {
+        generatedPdf = await generateTransUnionPdfFromApiResponse(rawData, inputParams);
+      } catch (pdfErr) {
+        console.warn('[CIBIL PDF Engine] PDF Generation Notice:', pdfErr?.message);
+      }
+
+      const name = getVal(rawData, 'name') || inputParams.name || generatedPdf?.extracted?.borrower?.name;
+      const pan = getVal(rawData, 'pan') || inputParams.pan || generatedPdf?.extracted?.identifications?.find(i => i.type === 'TaxId' || i.type === '01')?.number;
+      const mobile = getVal(rawData, 'mobile') || inputParams.mobile || generatedPdf?.extracted?.telephones?.[0]?.number;
+      const pdfUrl = generatedPdf?.base64DataUrl || getVal(rawData, 'pdf_url', 'report_url', 'url');
+      const refNo = getVal(rawData, 'ref_no', 'reference_no', 'client_ref_num') || `TU-${Date.now().toString().slice(-8)}`;
       const generatedAt = getVal(rawData, 'generated_at') || new Date().toISOString();
 
       return {
@@ -563,6 +609,24 @@ function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         pan: pan ? String(pan).toUpperCase() : null,
         mobile: mobile || null,
         pdfUrl: pdfUrl || null,
+        pdfBase64: generatedPdf?.base64DataUrl || null,
+        score: generatedPdf?.extracted?.cibilScore ?? getVal(rawData, 'score', 'cibil_score'),
+        scoreName: generatedPdf?.extracted?.scoreName || 'CIBILTransUnionScore3',
+        scoringFactors: generatedPdf?.extracted?.scoringFactors || [],
+        totalAccounts: generatedPdf?.extracted?.totalAccounts || 0,
+        activeAccounts: generatedPdf?.extracted?.activeAccounts || 0,
+        closedAccounts: generatedPdf?.extracted?.closedAccounts || 0,
+        totalSanctioned: generatedPdf?.extracted?.totalSanctioned || 0,
+        totalCurrentBalance: generatedPdf?.extracted?.totalCurrentBalance || 0,
+        totalOverdue: generatedPdf?.extracted?.totalOverdue || 0,
+        dpdOverall: generatedPdf?.extracted?.dpd_overall || '0 DPD (Clean Track)',
+        dpdAnalysis: generatedPdf?.extracted?.dpdAnalysis || '',
+        dpd30Days: generatedPdf?.extracted?.dpd_30_days || '0',
+        dpd60Days: generatedPdf?.extracted?.dpd_60_days || '0',
+        dpd90Days: generatedPdf?.extracted?.dpd_90_days || '0',
+        dpd120Days: generatedPdf?.extracted?.dpd_120_days || '0',
+        tradelines: generatedPdf?.extracted?.tradelinesFull || generatedPdf?.extracted?.allTradelines || [],
+        inquiries: generatedPdf?.extracted?.inquiries || [],
         referenceNo: refNo || null,
         generatedAt,
         status: isSuccess ? 'OFFICIAL CIBIL PDF READY' : 'BUREAU UNAVAILABLE',
@@ -570,17 +634,31 @@ function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       };
     }
 
-    // 13. TransUnion Hybrid Score, 14. Experian, 15. CRIF
-    case 'cibil-transunion-v5':
+    // 13. Experian, 14. CRIF
     case 'experian-credit-report':
     case 'crif-credit-score-v4': {
+      let generatedPdf = null;
+      if (apiId.includes('crif') || rawData?.data?.result_json?.parsed_data?.['B2C-REPORT'] || rawData?.result_json?.parsed_data?.['B2C-REPORT']) {
+        try {
+          generatedPdf = await generateCrifPdfFromApiResponse(rawData, inputParams);
+        } catch (crifPdfErr) {
+          console.error('[allApisEngine] CRIF PDF generation error:', crifPdfErr.message);
+        }
+      } else if (apiId.includes('transunion') || rawData?.data?.steps || rawData?.steps || rawData?.data?.report_summary || rawData?.report_summary || rawData?.result_json) {
+        try {
+          generatedPdf = await generateTransUnionPdfFromApiResponse(rawData, inputParams);
+        } catch (pdfErr) {
+          console.error('[allApisEngine] TU PDF generation error:', pdfErr.message);
+        }
+      }
+
       const b2cReport = rawData?.result_json?.parsed_data?.['B2C-REPORT'] || rawData?.data?.result_json?.parsed_data?.['B2C-REPORT'];
       const crifScoreObj = b2cReport?.['REPORT-DATA']?.['STANDARD-DATA']?.SCORE?.[0];
       const crifScoreVal = crifScoreObj ? (crifScoreObj['SCORE-VALUE'] || crifScoreObj.value) : null;
       const crifTradelines = b2cReport?.['REPORT-DATA']?.['STANDARD-DATA']?.TRADELINES;
       const crifInquiries = b2cReport?.['REPORT-DATA']?.['STANDARD-DATA']?.['INQUIRY-HISTORY']?.length;
 
-      const rawScore = crifScoreVal || getVal(rawData, 'score', 'cibil_score', 'crif_score');
+      const rawScore = generatedPdf?.extracted?.scoreSection?.score || generatedPdf?.extracted?.cibilScore || crifScoreVal || getVal(rawData, 'score', 'cibil_score', 'crif_score');
       const score = rawScore !== null && rawScore !== undefined && String(rawScore).trim() !== '' ? Number(rawScore) : null;
       const bureauName = apiId.includes('transunion') ? 'TransUnion CIBIL' : apiId.includes('experian') ? 'Experian' : 'CRIF HighMark';
 
@@ -591,12 +669,12 @@ function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         tier = 'THIN FILE / ACTIVE INQUIRY RECORD';
       }
 
-      const name = getVal(rawData, 'name', 'fullname') || (b2cReport ? `${b2cReport['REQUEST-DATA']?.['APPLICANT-SEGMENT']?.['FIRST-NAME'] || ''} ${b2cReport['REQUEST-DATA']?.['APPLICANT-SEGMENT']?.['LAST-NAME'] || ''}`.trim() : '') || inputParams.name || (inputParams.forename ? `${inputParams.forename} ${inputParams.surname || ''}` : '') || (inputParams.first_name ? `${inputParams.first_name} ${inputParams.last_name || ''}` : '');
-      const pan = getVal(rawData, 'pan', 'pan_id') || inputParams.pan || inputParams.pan_id;
-      const mobile = getVal(rawData, 'mobile', 'mobile_no', 'phone_number') || inputParams.mobile || inputParams.mobile_no || inputParams.phone_number;
-      const summary = rawData?.data?.summary || rawData?.summary || {};
+      const name = getVal(rawData, 'name', 'fullname') || (b2cReport ? `${b2cReport['REQUEST-DATA']?.['APPLICANT-SEGMENT']?.['FIRST-NAME'] || ''} ${b2cReport['REQUEST-DATA']?.['APPLICANT-SEGMENT']?.['LAST-NAME'] || ''}`.trim() : '') || inputParams.name || (inputParams.forename ? `${inputParams.forename} ${inputParams.surname || ''}` : '') || (inputParams.first_name ? `${inputParams.first_name} ${inputParams.last_name || ''}` : '') || generatedPdf?.extracted?.borrower?.name;
+      const pan = getVal(rawData, 'pan', 'pan_id') || inputParams.pan || inputParams.pan_id || generatedPdf?.extracted?.identifications?.find(i => i.type === 'TaxId')?.number;
+      const mobile = getVal(rawData, 'mobile', 'mobile_no', 'phone_number') || inputParams.mobile || inputParams.mobile_no || inputParams.phone_number || generatedPdf?.extracted?.telephones?.[0]?.number;
+      const summary = rawData?.data?.summary || rawData?.summary || generatedPdf?.extracted?.summaryObj || {};
       
-      const rawTradelines = crifTradelines || rawData.tradelines || rawData?.data?.tradelines || [];
+      const rawTradelines = crifTradelines || rawData.tradelines || rawData?.data?.tradelines || generatedPdf?.extracted?.allTradelines || [];
       const tradelinesList = Array.isArray(rawTradelines) ? rawTradelines : [];
       const activeTradelinesCount = tradelinesList.length || summary.total_accounts || getVal(rawData, 'active_accounts', 'tradelines');
       const inquiries = crifInquiries !== undefined ? crifInquiries : getVal(rawData, 'inquiries_last_30_days', 'inquiries');
@@ -609,6 +687,7 @@ function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         name: name ? String(name).toUpperCase() : null,
         pan: pan ? String(pan).toUpperCase() : null,
         mobile: mobile || null,
+        pdfUrl: generatedPdf?.base64DataUrl || null,
         summary: Object.keys(summary).length > 0 ? summary : null,
         tradelinesList,
         activeTradelines: activeTradelinesCount !== null && activeTradelinesCount !== undefined ? activeTradelinesCount : null,

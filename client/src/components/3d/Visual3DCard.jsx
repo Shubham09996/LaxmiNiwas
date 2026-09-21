@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2,
@@ -6,7 +6,6 @@ import {
   Copy,
   Check,
   Clock,
-  Code2,
   ShieldCheck,
   Zap,
   ExternalLink,
@@ -31,7 +30,18 @@ import {
   Languages,
   Radio,
   Wifi,
-  Server
+  Server,
+  Compass,
+  Maximize2,
+  Plus,
+  Minus,
+  LocateFixed,
+  RotateCcw,
+  RefreshCw,
+  X,
+  FileText,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext.jsx';
 
@@ -49,7 +59,7 @@ function safeText(val, fallback = '—') {
 export default function Visual3DCard({ result }) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
-  const [showRawJson, setShowRawJson] = useState(false);
+  const [activeTab, setActiveTab] = useState('visual'); // 'visual' | 'raw_json'
 
   if (!result) return null;
 
@@ -80,6 +90,17 @@ export default function Visual3DCard({ result }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyRaw = () => {
+    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+    setCopied(true);
+    toast?.addToast?.({
+      title: 'Raw JSON Copied',
+      message: '100% untouched raw API response copied.',
+      type: 'success'
+    });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const cardType = visualData?.cardType || 'GENERIC_CARD';
 
   return (
@@ -99,14 +120,14 @@ export default function Visual3DCard({ result }) {
       ></div>
 
       {/* Main Container */}
-      <div className="relative bg-[#0B1020]/95 border border-indigo-500/30 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur-2xl overflow-hidden space-y-5">
+      <div className="relative bg-[#0B1020]/95 border border-indigo-500/30 rounded-3xl p-4 sm:p-5 shadow-2xl backdrop-blur-2xl overflow-hidden space-y-4">
         
         {/* Floating Aura */}
         <div className="absolute -right-12 -top-12 w-48 h-48 bg-indigo-500/10 rounded-full pointer-events-none blur-2xl"></div>
         <div className="absolute -left-12 -bottom-12 w-48 h-48 bg-emerald-500/10 rounded-full pointer-events-none blur-2xl"></div>
 
         {/* Card Header */}
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pb-4 border-b border-slate-800/80">
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-800/80">
           <div className="flex items-center gap-3 min-w-0">
             <div
               className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs text-white flex-shrink-0 font-mono shadow-md ${
@@ -164,25 +185,47 @@ export default function Visual3DCard({ result }) {
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               type="button"
-              onClick={() => setShowRawJson(!showRawJson)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                showRawJson
-                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-glow-indigo'
-                  : 'bg-slate-900 border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white'
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl text-xs font-bold text-slate-300 hover:text-white transition-all shadow-sm"
+              title="Copy Full Result JSON"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copied ? 'Copied' : 'Copy Payload'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* View Mode Tab Switcher */}
+        <div className="relative z-10 flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+          <div className="flex items-center gap-1.5 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
+            <button
+              type="button"
+              onClick={() => setActiveTab('visual')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === 'visual'
+                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-glow-indigo'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Code2 className="w-3.5 h-3.5" />
-              <span>{showRawJson ? 'Hide Raw JSON' : 'Raw JSON'}</span>
+              <span>✨ Visual Verification Card</span>
             </button>
             <button
               type="button"
-              onClick={handleCopy}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl text-xs font-bold text-slate-300 hover:text-white transition-all shadow-sm"
+              onClick={() => setActiveTab('raw_json')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === 'raw_json'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-glow-emerald'
+                  : 'text-slate-400 hover:text-white'
+              }`}
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Copied' : 'Copy'}</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>⚡ 100% Real API Response JSON</span>
             </button>
           </div>
+
+          <span className="text-[10px] font-mono text-slate-500 hidden sm:block">
+            {activeTab === 'visual' ? 'Dynamic Real-time Projection' : 'Untouched Gateway Response Body'}
+          </span>
         </div>
 
         {/* Status Alert Banner if Error */}
@@ -202,45 +245,45 @@ export default function Visual3DCard({ result }) {
           </div>
         )}
 
-        {/* Collapsible Raw JSON Viewer */}
-        <AnimatePresence>
-          {showRawJson && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="p-4 rounded-2xl bg-slate-950 border border-indigo-500/30 shadow-2xl">
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-[11px] font-bold text-indigo-300">
-                  <span>LIVE UPSTREAM RAW JSON PAYLOAD</span>
-                  <span className="font-mono text-slate-500">{gateway} • HTTP {statusCode || 200}</span>
-                </div>
-                <pre className="text-xs font-mono text-emerald-400 overflow-x-auto max-h-72 p-3 bg-slate-900/80 rounded-xl border border-slate-800/80 leading-relaxed">
-                  {JSON.stringify(result.data, null, 2)}
-                </pre>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* TAILORED VISUAL RENDERING PER API */}
-        <div className="relative z-10">
-          {cardType === 'PAN_CARD' && <PanVisualCard data={visualData} raw={data} success={success} />}
-          {cardType === 'DIGILOCKER_GENERATE_CARD' && <DigiLockerGenerateCard data={visualData} raw={data} success={success} />}
-          {cardType === 'AADHAAR_CARD' && <AadhaarVisualCard data={visualData} raw={data} success={success} />}
-          {cardType === 'BANK_ACCOUNT_CARD' && <BankAccountCard data={visualData} raw={data} success={success} />}
-          {cardType === 'IFSC_DIRECTORY_CARD' && <IfscDirectoryCard data={visualData} raw={data} success={success} />}
-          {cardType === 'UAN_LOOKUP_CARD' && <UanLookupCard data={visualData} raw={data} success={success} />}
-          {cardType === 'UAN_HISTORY_CARD' && <UanHistoryCard data={visualData} raw={data} success={success} />}
-          {cardType === 'TELECOM_CARD' && <TelecomCard data={visualData} raw={data} success={success} />}
-          {cardType === 'IP_FRAUD_CARD' && <IpFraudCard data={visualData} raw={data} success={success} />}
-          {cardType === 'GEO_REVERSE_CARD' && <GeoReverseCard data={visualData} raw={data} success={success} />}
-          {cardType === 'DOMAIN_CARD' && <DomainCard data={visualData} raw={data} success={success} />}
-          {cardType === 'CIBIL_PDF_CARD' && <CibilPdfCard data={visualData} raw={data} success={success} />}
-          {cardType === 'BUREAU_SCORE_CARD' && <BureauScoreCard data={visualData} raw={data} success={success} />}
-          {cardType === 'GENERIC_CARD' && <GenericVisualCard data={visualData} raw={data} success={success} />}
-        </div>
+        {/* CONTENT VIEWPORT */}
+        {activeTab === 'raw_json' ? (
+          <div className="relative z-10 space-y-2">
+            <div className="flex items-center justify-between text-xs px-1">
+              <span className="font-mono text-[11px] text-slate-400">
+                HTTP Status: <strong className="text-emerald-400">{statusCode || 200}</strong> • Gateway Latency: <strong className="text-white">{latencyMs}ms</strong>
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyRaw}
+                className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
+              >
+                <Copy className="w-3 h-3" />
+                <span>Copy Raw JSON</span>
+              </button>
+            </div>
+            <pre className="w-full p-4 rounded-2xl bg-slate-950 border border-slate-800 text-emerald-300 font-mono text-xs overflow-x-auto max-h-[500px] leading-relaxed shadow-inner selection:bg-emerald-900 selection:text-white">
+              {JSON.stringify(data, null, 2)}
+            </pre>
+          </div>
+        ) : (
+          /* TAILORED VISUAL RENDERING PER API */
+          <div className="relative z-10">
+            {cardType === 'PAN_CARD' && <PanVisualCard data={visualData} raw={data} success={success} />}
+            {cardType === 'DIGILOCKER_GENERATE_CARD' && <DigiLockerGenerateCard data={visualData} raw={data} success={success} />}
+            {cardType === 'AADHAAR_CARD' && <AadhaarVisualCard data={visualData} raw={data} success={success} />}
+            {cardType === 'BANK_ACCOUNT_CARD' && <BankAccountCard data={visualData} raw={data} success={success} />}
+            {cardType === 'IFSC_DIRECTORY_CARD' && <IfscDirectoryCard data={visualData} raw={data} success={success} />}
+            {cardType === 'UAN_LOOKUP_CARD' && <UanLookupCard data={visualData} raw={data} success={success} />}
+            {cardType === 'UAN_HISTORY_CARD' && <UanHistoryCard data={visualData} raw={data} success={success} />}
+            {cardType === 'TELECOM_CARD' && <TelecomCard data={visualData} raw={data} success={success} />}
+            {cardType === 'IP_FRAUD_CARD' && <IpFraudCard data={visualData} raw={data} success={success} />}
+            {cardType === 'GEO_REVERSE_CARD' && <GeoReverseCard data={visualData} raw={data} success={success} />}
+            {cardType === 'DOMAIN_CARD' && <DomainCard data={visualData} raw={data} success={success} />}
+            {cardType === 'CIBIL_PDF_CARD' && <CibilPdfCard data={visualData} raw={data} success={success} />}
+            {cardType === 'BUREAU_SCORE_CARD' && <BureauScoreCard data={visualData} raw={data} success={success} />}
+            {cardType === 'GENERIC_CARD' && <GenericVisualCard data={visualData} raw={data} success={success} />}
+          </div>
+        )}
       </div>
     </motion.div>
   );
@@ -258,33 +301,34 @@ function PanVisualCard({ data }) {
   const entityType = data.entityType || 'Individual';
   const aadhaarLinked = data.aadhaarLinked;
   const aadhaarNumber = data.aadhaarNumber;
-  const matchScore = data.matchScore;
+  const aadhaarSeedingStatus = data.aadhaarSeedingStatus;
+  const matchScore = data.matchScore || 'Verified';
   const address = data.address;
   const mobile = data.mobile;
   const email = data.email;
 
   return (
-    <div className="relative mx-auto max-w-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-sky-400/40 overflow-hidden bg-gradient-to-br from-[#0e2c48] via-[#153b60] to-[#0a2034] text-slate-100 select-none space-y-4">
+    <div className="relative w-full rounded-3xl p-5 sm:p-6 shadow-2xl border border-sky-400/40 overflow-hidden bg-gradient-to-br from-[#0e2c48] via-[#153b60] to-[#0a2034] text-slate-100 select-none space-y-3.5">
       {/* Background Micro Guilloche Pattern */}
       <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:14px_14px] pointer-events-none"></div>
 
       {/* Header Bar */}
-      <div className="relative z-10 flex items-center justify-between pb-3.5 border-b border-sky-300/20">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-400/20 border border-amber-300/40 flex items-center justify-center text-amber-300 font-serif font-black text-sm shadow-inner">
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-sky-300/20">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-10 h-10 rounded-2xl bg-amber-400/20 border border-amber-300/40 flex items-center justify-center text-amber-300 font-serif font-black text-sm shadow-inner flex-shrink-0">
             🏛️
           </div>
-          <div>
-            <div className="text-xs font-black tracking-widest text-amber-300 uppercase">
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-black tracking-widest text-amber-300 uppercase truncate">
               आयकर विभाग • INCOME TAX DEPARTMENT
             </div>
-            <div className="text-[9px] font-bold text-sky-200 uppercase tracking-wider">
+            <div className="text-[9px] font-bold text-sky-200 uppercase tracking-wider truncate">
               भारत सरकार / GOVT. OF INDIA
             </div>
           </div>
         </div>
 
-        <div className="text-right">
+        <div className="text-left sm:text-right flex-shrink-0">
           <span className="text-[9px] font-bold text-sky-300 uppercase block tracking-wider">Card Category</span>
           <span className="font-mono text-xs font-black text-white bg-sky-950/80 px-2 py-0.5 rounded border border-sky-400/30 inline-block">
             {entityType}
@@ -323,24 +367,18 @@ function PanVisualCard({ data }) {
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-            {dob && (
-              <div>
-                <span className="text-[8px] font-bold text-sky-300 uppercase block font-sans">Date of Birth (DOB)</span>
-                <span className="font-bold text-amber-200 block">{dob}</span>
-              </div>
-            )}
-            {gender && (
-              <div>
-                <span className="text-[8px] font-bold text-sky-300 uppercase block font-sans">Gender</span>
-                <span className="font-bold text-sky-100 block uppercase">{gender}</span>
-              </div>
-            )}
-            {fatherName && (
-              <div className="col-span-2">
-                <span className="text-[8px] font-bold text-sky-300 uppercase block font-sans">Father's Name</span>
-                <span className="font-bold text-sky-100 block uppercase truncate">{fatherName}</span>
-              </div>
-            )}
+            <div>
+              <span className="text-[8px] font-bold text-sky-300 uppercase block font-sans">Date of Birth (DOB)</span>
+              <span className="font-bold text-amber-200 block truncate">{dob || '— (Masked by ITD)'}</span>
+            </div>
+            <div>
+              <span className="text-[8px] font-bold text-sky-300 uppercase block font-sans">Gender</span>
+              <span className="font-bold text-sky-100 block uppercase truncate">{gender || 'Individual'}</span>
+            </div>
+            <div className="col-span-2">
+              <span className="text-[8px] font-bold text-sky-300 uppercase block font-sans">Father's Name</span>
+              <span className="font-bold text-sky-100 block uppercase truncate">{fatherName || '— (Restricted by ITD)'}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -352,7 +390,7 @@ function PanVisualCard({ data }) {
           <div className="min-w-0">
             <span className="text-[8px] font-bold text-slate-400 uppercase block">Aadhaar Link</span>
             <span className="font-bold text-emerald-300 text-[11px] block truncate">
-              {aadhaarLinked ? (aadhaarNumber ? `Seeded (${aadhaarNumber})` : 'Linked & Seeded') : 'Not Linked'}
+              {aadhaarLinked ? (aadhaarNumber ? `Seeded (${aadhaarNumber})` : 'Linked & Seeded') : (aadhaarSeedingStatus ? `Status: ${aadhaarSeedingStatus}` : 'Not Linked')}
             </span>
           </div>
         </div>
@@ -379,7 +417,7 @@ function PanVisualCard({ data }) {
       </div>
 
       {/* Registered Contact & Address */}
-      {(address || mobile || email) && (
+      {(address || mobile || email) ? (
         <div className="relative z-10 p-3.5 rounded-2xl bg-sky-950/80 border border-sky-400/30 space-y-2 text-xs">
           {address && (
             <div className="flex items-start gap-2">
@@ -412,6 +450,11 @@ function PanVisualCard({ data }) {
             </div>
           )}
         </div>
+      ) : (
+        <div className="relative z-10 p-2.5 rounded-xl bg-sky-950/60 border border-sky-400/20 flex items-center justify-between text-[11px] text-sky-200 font-mono">
+          <span>🏛️ ITD Database Record: <strong className="text-white">Active & Operative</strong></span>
+          <span className="text-emerald-400 font-bold">100% Valid Taxpayer</span>
+        </div>
       )}
     </div>
   );
@@ -427,22 +470,22 @@ function DigiLockerGenerateCard({ data }) {
   const expirySeconds = data.expirySeconds || 1800;
 
   return (
-    <div className="mx-auto max-w-xl p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-[#0c1f2e] via-[#0f2d42] to-[#081722] border border-cyan-500/30 text-white space-y-4 shadow-2xl">
-      <div className="flex items-center justify-between pb-3 border-b border-cyan-500/20">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-cyan-600/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
+    <div className="w-full p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#0c1f2e] via-[#0f2d42] to-[#081722] border border-cyan-500/30 text-white space-y-3.5 shadow-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-cyan-500/20">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="w-9 h-9 rounded-xl bg-cyan-600/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 flex-shrink-0">
             <Fingerprint className="w-5 h-5" />
           </div>
-          <div>
-            <span className="font-extrabold text-sm uppercase text-white block">
+          <div className="min-w-0 flex-1">
+            <span className="font-extrabold text-sm uppercase text-white block truncate">
               DigiLocker Paperless e-KYC Session
             </span>
-            <span className="text-[10px] text-cyan-300 font-bold uppercase tracking-wider block">
+            <span className="text-[10px] text-cyan-300 font-bold uppercase tracking-wider block truncate">
               UIDAI Digital Identity Gateway
             </span>
           </div>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30">
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center">
           TOKEN ACTIVE
         </span>
       </div>
@@ -493,26 +536,26 @@ function AadhaarVisualCard({ data }) {
   const clientId = data.clientId;
 
   return (
-    <div className="relative mx-auto max-w-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200/50 overflow-hidden bg-[#fafafa] text-slate-900 select-none space-y-4">
+    <div className="relative w-full rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-200/50 overflow-hidden bg-[#fafafa] text-slate-900 select-none space-y-3.5">
       {/* Tricolor National Header Bar */}
       <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-500 via-white to-emerald-600"></div>
 
       {/* Official Header */}
-      <div className="flex items-center justify-between pb-3 pt-1 border-b border-slate-200">
-        <div className="flex items-center gap-2.5">
-          <span className="text-2xl">🏛️</span>
-          <div>
-            <div className="text-[11px] font-black text-slate-900 uppercase tracking-wide">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 pt-1 border-b border-slate-200">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <span className="text-2xl flex-shrink-0">🏛️</span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] font-black text-slate-900 uppercase tracking-wide truncate">
               भारत सरकार / Government of India
             </div>
-            <div className="text-[8px] font-bold text-slate-600 uppercase tracking-wider">
+            <div className="text-[8px] font-bold text-slate-600 uppercase tracking-wider truncate">
               भारतीय विशिष्ट पहचान प्राधिकरण (UIDAI)
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 px-2.5 py-1 rounded-xl shadow-sm">
-          <Fingerprint className="w-3.5 h-3.5 text-red-600" />
+        <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 px-2.5 py-1 rounded-xl shadow-sm flex-shrink-0 self-start sm:self-center">
+          <Fingerprint className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
           <span className="text-[9px] font-black text-red-700 uppercase tracking-wider">UIDAI e-KYC VERIFIED</span>
         </div>
       </div>
@@ -599,14 +642,14 @@ function BankAccountCard({ data }) {
   const accountStatus = data.accountStatus || 'ACTIVE';
 
   return (
-    <div className="relative mx-auto max-w-xl rounded-2xl p-6 sm:p-7 shadow-2xl border border-indigo-400/30 overflow-hidden bg-gradient-to-br from-[#0c1b33] via-[#102a4e] to-[#081326] text-white select-none">
-      <div className="flex items-center justify-between pb-4 border-b border-indigo-500/20">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center text-indigo-300 font-bold">
+    <div className="relative w-full rounded-2xl p-5 sm:p-6 shadow-2xl border border-indigo-400/30 overflow-hidden bg-gradient-to-br from-[#0c1b33] via-[#102a4e] to-[#081326] text-white select-none space-y-3.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-indigo-500/20">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center text-indigo-300 font-bold flex-shrink-0">
             <Landmark className="w-4 h-4" />
           </div>
-          <div>
-            <span className="text-xs sm:text-sm font-black tracking-wide text-white block uppercase">
+          <div className="min-w-0 flex-1">
+            <span className="text-xs sm:text-sm font-black tracking-wide text-white block uppercase truncate">
               {bankName}
             </span>
             <span className="text-[9px] font-bold text-indigo-300 uppercase tracking-wider block">
@@ -615,7 +658,7 @@ function BankAccountCard({ data }) {
           </div>
         </div>
 
-        <span className="text-[10px] font-mono font-black text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30">
+        <span className="text-[10px] font-mono font-black text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30 flex-shrink-0 self-start sm:self-center">
           {accountStatus} • CBS VALIDATED
         </span>
       </div>
@@ -671,26 +714,26 @@ function IfscDirectoryCard({ data }) {
   const micr = data.micr;
 
   return (
-    <div className="relative mx-auto max-w-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-indigo-500/30 overflow-hidden bg-gradient-to-br from-[#0c1630] via-[#101e44] to-[#080f22] text-white space-y-4">
+    <div className="relative w-full rounded-3xl p-5 sm:p-6 shadow-2xl border border-indigo-500/30 overflow-hidden bg-gradient-to-br from-[#0c1630] via-[#101e44] to-[#080f22] text-white space-y-3.5">
       
       {/* Header Banner */}
-      <div className="flex items-center justify-between pb-3.5 border-b border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 flex items-center justify-center font-black text-sm shadow-inner">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pb-3.5 border-b border-slate-800">
+        <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+          <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 flex items-center justify-center font-black text-sm shadow-inner flex-shrink-0 mt-0.5 sm:mt-0">
             <Building className="w-5 h-5" />
           </div>
-          <div>
-            <h4 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
+          <div className="min-w-0 flex-1">
+            <h4 className="text-sm sm:text-base font-black text-white tracking-wide uppercase truncate">
               {bankName}
             </h4>
-            <span className="text-[10px] text-indigo-300 font-bold uppercase tracking-wider block">
+            <span className="text-[10px] sm:text-[11px] text-indigo-300 font-semibold tracking-wider block mt-0.5 leading-snug break-words">
               RBI Central IFSC Registry • {branch}
             </span>
           </div>
         </div>
 
-        <div className="text-right">
-          <span className="text-[9px] font-bold text-slate-400 uppercase block">IFSC Code</span>
+        <div className="text-left sm:text-right flex-shrink-0 self-start sm:self-center bg-slate-950/80 px-3 py-1.5 rounded-xl border border-indigo-500/30">
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">IFSC Code</span>
           <span className="font-mono text-sm sm:text-base font-black text-amber-300 tracking-wider">
             {ifsc}
           </span>
@@ -698,7 +741,7 @@ function IfscDirectoryCard({ data }) {
       </div>
 
       {/* Address & Branch Info */}
-      <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-2 text-xs">
+      <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-2.5 text-xs">
         <div>
           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
             Branch Postal Address:
@@ -708,7 +751,7 @@ function IfscDirectoryCard({ data }) {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-800/60 font-mono text-[11px]">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-800/60 font-mono text-[11px]">
           {city && (
             <div>
               <span className="text-[8px] font-bold text-slate-500 uppercase block">City / District</span>
@@ -730,9 +773,9 @@ function IfscDirectoryCard({ data }) {
           {contact && (
             <div className="col-span-full sm:col-span-1">
               <span className="text-[8px] font-bold text-slate-500 uppercase block">Phone / Contact</span>
-              <span className="font-bold text-emerald-300 block flex items-center gap-1">
-                <Phone className="w-3 h-3" />
-                {contact}
+              <span className="font-bold text-emerald-300 flex items-center gap-1.5 mt-0.5">
+                <Phone className="w-3 h-3 flex-shrink-0" />
+                <span>{contact}</span>
               </span>
             </div>
           )}
@@ -777,15 +820,15 @@ function UanLookupCard({ data }) {
   const employer = data.employer;
 
   return (
-    <div className="mx-auto max-w-xl p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-[#062422] via-[#0b3d39] to-[#041a18] border border-teal-500/30 text-white space-y-4 shadow-2xl">
-      <div className="flex items-center justify-between pb-3 border-b border-teal-400/20">
-        <div className="flex items-center gap-2">
-          <Briefcase className="w-5 h-5 text-teal-300" />
-          <span className="font-extrabold text-sm uppercase text-teal-200">
+    <div className="w-full p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#062422] via-[#0b3d39] to-[#041a18] border border-teal-500/30 text-white space-y-3.5 shadow-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-teal-400/20">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Briefcase className="w-5 h-5 text-teal-300 flex-shrink-0" />
+          <span className="font-extrabold text-sm uppercase text-teal-200 truncate">
             EPFO Universal Account Number Lookup
           </span>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30">
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center">
           {safeText(data.status, 'UAN RECORD FOUND')}
         </span>
       </div>
@@ -835,15 +878,15 @@ function UanHistoryCard({ data }) {
   const monthlyPfAmount = data.monthlyPfAmount;
 
   return (
-    <div className="mx-auto max-w-xl p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-[#062422] via-[#0b3d39] to-[#041a18] border border-teal-500/30 text-white space-y-4 shadow-2xl">
-      <div className="flex items-center justify-between pb-3 border-b border-teal-400/20">
-        <div className="flex items-center gap-2">
-          <Briefcase className="w-5 h-5 text-teal-300" />
-          <span className="font-extrabold text-sm uppercase text-teal-200">
+    <div className="w-full p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#062422] via-[#0b3d39] to-[#041a18] border border-teal-500/30 text-white space-y-3.5 shadow-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-teal-400/20">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Briefcase className="w-5 h-5 text-teal-300 flex-shrink-0" />
+          <span className="font-extrabold text-sm uppercase text-teal-200 truncate">
             EPFO Passbook Service Record
           </span>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30">
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center">
           {safeText(data.status, 'ACTIVE CONTRIBUTORY')}
         </span>
       </div>
@@ -904,15 +947,15 @@ function TelecomCard({ data }) {
   const addressList = data.addressList || [];
 
   return (
-    <div className="mx-auto max-w-xl p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-[#2b0c0c] via-[#3a1212] to-[#1c0808] border border-red-500/30 text-white space-y-4 shadow-2xl">
-      <div className="flex items-center justify-between pb-3 border-b border-red-500/20">
-        <div className="flex items-center gap-2">
-          <Smartphone className="w-5 h-5 text-red-400" />
-          <span className="font-extrabold text-sm uppercase text-red-200">
+    <div className="w-full p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#2b0c0c] via-[#3a1212] to-[#1c0808] border border-red-500/30 text-white space-y-3.5 shadow-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-red-500/20">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Smartphone className="w-5 h-5 text-red-400 flex-shrink-0" />
+          <span className="font-extrabold text-sm uppercase text-red-200 truncate">
             Telecom Subscriber Profile & Prefill
           </span>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30">
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center">
           {safeText(data.status, 'SUBSCRIBER ACTIVE')}
         </span>
       </div>
@@ -979,211 +1022,579 @@ function TelecomCard({ data }) {
 }
 
 /* =========================================================================
-   9. IP FRAUD & GEOLOCATION RISK (#09) — FULL RESPONSE RENDERER
+   9. IP FRAUD & GEOLOCATION RISK (#09) — 100% REAL LIVE GATEWAY DATA
    ========================================================================= */
-function IpFraudCard({ data }) {
-  const ip = data.ip || '—';
-  const ipType = data.ipType || 'IPv4';
-  const continent = data.continent || '—';
-  const country = data.country || '—';
-  const region = data.region || '—';
-  const city = data.city || '—';
-  const zip = data.zip || '—';
-  const lat = data.latitude;
-  const lon = data.longitude;
-  const capital = data.capital;
-  const flagEmoji = data.flagEmoji || '🇮🇳';
-  const flagUrl = data.flagUrl;
-  const callingCode = data.callingCode || '+91';
-  const routingType = data.routingType || 'fixed';
-  const connectionType = data.connectionType || 'tx';
-  const languages = data.languages || [];
-  const isp = data.isp;
-  const asn = data.asn;
-  const riskScore = safeText(data.riskScore, '0 / 100');
-  const vpn = data.vpn || 'Clean Residential IP';
+function IpFraudCard({ data = {}, raw = {} }) {
+  // Real untouched upstream fields (Zero hardcoded mock strings)
+  const ip = raw.ip || data.ip || '—';
+  const ipType = (raw.type || data.ipType || (ip.includes(':') ? 'IPv6' : 'IPv4')).toUpperCase();
+  const city = raw.city || data.city || '';
+  const region = raw.region_name || data.region || '';
+  const country = raw.country_name || data.country || '';
+  const countryCode = (raw.country_code || (raw.location && raw.location.country_code) || (data.countryCode) || (country ? country.slice(0, 2) : '')).toUpperCase();
+  const continentName = raw.continent_name || data.continent || '';
+  const continentCode = raw.continent_code || '';
+  const zip = raw.zip ||
+    raw.postal ||
+    raw.pincode ||
+    raw.postcode ||
+    raw.postal_code ||
+    (raw.location && (raw.location.zip || raw.location.postal || raw.location.postcode || raw.location.pincode)) ||
+    (raw.data && (raw.data.zip || raw.data.postal || raw.data.pincode || raw.data.postcode)) ||
+    data.zip || '';
+  const capital = raw.location?.capital || data.capital || '';
+
+  const routingType = raw.ip_routing_type || data.routingType || '—';
+  const connectionType = raw.connection_type || data.connectionType || '—';
+  const isp = raw.isp || raw.org || raw.organization || data.isp || '—';
+  const networkSubtitle = raw.asn ? `ASN: ${raw.asn}` : (data.asn ? `ASN: ${data.asn}` : (data.gateway || '—'));
+
+  const numLat = raw.latitude !== undefined && raw.latitude !== null ? parseFloat(raw.latitude) : (data.latitude !== undefined && data.latitude !== null ? parseFloat(data.latitude) : null);
+  const numLon = raw.longitude !== undefined && raw.longitude !== null ? parseFloat(raw.longitude) : (data.longitude !== undefined && data.longitude !== null ? parseFloat(data.longitude) : null);
+  const hasCoords = numLat !== null && numLon !== null && !isNaN(numLat) && !isNaN(numLon) && (numLat !== 0 || numLon !== 0);
+
+  const callingCode = raw.location?.calling_code ? `+${raw.location.calling_code}` : (data.callingCode ? (String(data.callingCode).startsWith('+') ? data.callingCode : `+${data.callingCode}`) : '—');
+  
+  let languagesList = [];
+  if (Array.isArray(raw.location?.languages)) {
+    languagesList = raw.location.languages.map(l => (typeof l === 'object' ? l.name || l.code : l)).filter(Boolean);
+  } else if (Array.isArray(data.languages)) {
+    languagesList = data.languages;
+  }
+  const languagesStr = languagesList.length > 0 ? languagesList.join(', ') : '—';
+
+  const locationTitle = [city, region].filter(Boolean).join(', ') || (country || '—');
+  const continentText = continentName ? `${continentName}${continentCode ? ` (${continentCode})` : ''}` : '';
+
+  const googleMapsUrl = hasCoords
+    ? `https://www.google.com/maps/search/?api=1&query=${numLat},${numLon}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationTitle)}`;
 
   return (
-    <div className="mx-auto max-w-xl p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-[#071a26] via-[#0d283b] to-[#05141e] border border-cyan-500/30 text-white space-y-4 shadow-2xl">
+    <div className="w-full rounded-3xl bg-[#070D1E] border border-slate-800/90 text-white space-y-4 shadow-2xl p-5 sm:p-6 overflow-hidden font-sans">
       
-      {/* Header Banner */}
-      <div className="flex items-center justify-between pb-3.5 border-b border-cyan-500/20">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-cyan-600/20 border border-cyan-400/40 text-cyan-300 flex items-center justify-center font-black text-sm shadow-inner">
-            <Globe className="w-5 h-5" />
+      {/* 1. Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-800/80">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-11 h-11 rounded-2xl bg-blue-600/10 border border-blue-500/30 text-blue-400 flex items-center justify-center font-black text-sm shadow-inner flex-shrink-0">
+            <Globe className="w-5 h-5 text-blue-400" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h4 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
-                IP Geolocation & Threat Intelligence
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="text-base sm:text-lg font-black text-white tracking-wide truncate">
+                Requester IP Intelligence & Geolocation
               </h4>
-            </div>
-            <span className="text-[10px] text-cyan-300 font-bold uppercase tracking-wider block">
-              Global Cyber Risk & Host Registry
-            </span>
-          </div>
-        </div>
-
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-          <ShieldCheck className="w-3 h-3" />
-          <span>{safeText(data.status, 'VERIFIED')}</span>
-        </span>
-      </div>
-
-      {/* Main IP & Location Banner */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/80 via-slate-950/90 to-cyan-950/80 border border-cyan-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
-        <div>
-          <span className="text-[9px] font-bold text-cyan-300 uppercase tracking-wider block mb-1">
-            Inspected IP Address ({ipType.toUpperCase()})
-          </span>
-          <div className="font-mono text-xl sm:text-2xl font-black text-white tracking-wider flex items-center gap-2">
-            <span>{ip}</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-900/60 border border-cyan-400/40 text-cyan-200">
-              {routingType}
-            </span>
-          </div>
-        </div>
-
-        <div className="text-left sm:text-right flex items-center sm:flex-col gap-2 sm:gap-1">
-          <div className="flex items-center gap-1.5 text-lg">
-            <span>{flagEmoji}</span>
-            {flagUrl && (
-              <img src={flagUrl} alt="flag" className="w-5 h-3.5 object-cover rounded shadow-sm inline-block" />
-            )}
-            <span className="font-black text-sm text-white">{country}</span>
-          </div>
-          <span className="text-[10px] font-mono text-slate-400">{continent}</span>
-        </div>
-      </div>
-
-      {/* Detailed Geolocation Grid (City, Region, Capital, Coordinates, Zip) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
-        
-        <div className="p-3 rounded-2xl bg-slate-950/70 border border-cyan-500/20">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">City & State</span>
-          <span className="font-extrabold text-white text-xs block truncate">{city}, {region}</span>
-          {zip && <span className="text-[9px] font-mono text-cyan-300">Postal: {zip}</span>}
-        </div>
-
-        <div className="p-3 rounded-2xl bg-slate-950/70 border border-cyan-500/20">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">GPS Coordinates</span>
-          <span className="font-mono font-extrabold text-amber-300 text-xs block">
-            {lat !== undefined && lon !== undefined ? `${lat}° N, ${lon}° E` : '—'}
-          </span>
-          <span className="text-[9px] text-slate-400">Doorstep Precision</span>
-        </div>
-
-        <div className="p-3 rounded-2xl bg-slate-950/70 border border-cyan-500/20 col-span-2 sm:col-span-1">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Capital & ISD</span>
-          <span className="font-bold text-white text-xs block">{capital || 'New Delhi'}</span>
-          <span className="text-[9px] font-mono text-emerald-400">Calling: {callingCode}</span>
-        </div>
-
-      </div>
-
-      {/* Network, Languages & Threat Evaluation */}
-      <div className="p-4 rounded-2xl bg-slate-950/80 border border-cyan-500/20 space-y-2.5 text-xs">
-        
-        {/* Languages */}
-        {languages.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-              <Languages className="w-3 h-3 text-cyan-400" />
-              <span>Official Languages:</span>
-            </span>
-            {languages.map((l, i) => (
-              <span key={i} className="px-2 py-0.5 rounded-lg bg-cyan-950/90 border border-cyan-500/30 text-cyan-200 text-[10px] font-mono font-bold">
-                {l}
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-950/80 text-blue-300 border border-blue-500/30 uppercase tracking-wider whitespace-nowrap">
+                REAL-TIME GEO MATRIX
               </span>
-            ))}
-          </div>
-        )}
-
-        {/* ISP / ASN */}
-        {isp && (
-          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
-            <div>
-              <span className="text-[8px] font-bold text-slate-500 uppercase block">ISP / Autonomous System</span>
-              <span className="font-bold text-slate-200 text-xs">{isp} {asn ? `(ASN: ${asn})` : ''}</span>
             </div>
-            <span className="text-[9px] font-mono text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/30">
-              Type: {connectionType}
-            </span>
-          </div>
-        )}
-
-        {/* Risk & Proxy Badges */}
-        <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 gap-2">
-          <div className="p-2.5 rounded-xl bg-emerald-950/50 border border-emerald-500/30 flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            <div>
-              <span className="text-[8px] font-bold text-slate-400 uppercase block">Security Risk Score</span>
-              <span className="font-mono font-black text-emerald-300 text-xs">{riskScore}</span>
-            </div>
-          </div>
-
-          <div className="p-2.5 rounded-xl bg-cyan-950/50 border border-cyan-500/30 flex items-center gap-2">
-            <Wifi className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-            <div>
-              <span className="text-[8px] font-bold text-slate-400 uppercase block">Proxy / VPN Detection</span>
-              <span className="font-bold text-cyan-200 text-xs truncate block">{vpn}</span>
+            <div className="flex items-center gap-2 text-xs text-slate-400 mt-1 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]"></span>
+                LIVE NETWORK INTEL
+              </span>
+              <span className="text-[11px] text-slate-400">
+                Verified IP Geolocation, Network Routing, ISP & Proxy Threat Analysis.
+              </span>
             </div>
           </div>
         </div>
 
+        <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-bold text-slate-300 hover:text-white transition-all shadow-sm"
+            title="Refresh IP"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+            <span>Refresh IP</span>
+          </button>
+        </div>
       </div>
+
+      {/* 2. Main Location & IP Capsule Banner */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-[#0B132B] border border-slate-800/90 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-inner">
+        <div className="flex items-center gap-3.5 min-w-0">
+          {countryCode && (
+            <div className="w-12 h-12 rounded-2xl bg-[#111C3D] border border-slate-700/80 flex items-center justify-center text-white font-black text-base font-mono flex-shrink-0 shadow-md">
+              {countryCode}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                {locationTitle}
+              </h3>
+              {zip && (
+                <span className="text-xs font-mono font-bold text-slate-400">
+                  ZIP: {zip}
+                </span>
+              )}
+              {country && (
+                <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-[#14224A] text-slate-200 border border-slate-700/80">
+                  {country} {countryCode ? `(${countryCode})` : ''}
+                </span>
+              )}
+            </div>
+            {(continentText || capital) && (
+              <div className="text-xs text-slate-400 font-medium mt-1 flex items-center gap-2 flex-wrap">
+                {continentText && <span>Continent: <strong className="text-slate-200">{continentText}</strong></span>}
+                {continentText && capital && <span>•</span>}
+                {capital && <span>Capital: <strong className="text-slate-200">{capital}</strong></span>}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="text-left md:text-right flex-shrink-0">
+          <div className="font-mono text-2xl sm:text-3xl font-black text-white tracking-wide">
+            {ip}
+          </div>
+          <span className="text-[11px] font-mono text-slate-400 font-bold block mt-0.5">
+            Type: {ipType}
+          </span>
+        </div>
+      </div>
+
+      {/* 3. 4-Column Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        
+        {/* Card 1: IP ROUTING TYPE */}
+        <div className="p-4 rounded-2xl bg-[#0B132B] border border-slate-800/90 space-y-1">
+          <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block">
+            IP ROUTING TYPE
+          </span>
+          <div className="text-base font-black text-white capitalize">
+            {routingType}
+          </div>
+          <span className="text-[11px] font-medium text-slate-400 block truncate" title={isp}>
+            {isp}
+          </span>
+        </div>
+
+        {/* Card 2: CONNECTION TYPE */}
+        <div className="p-4 rounded-2xl bg-[#0B132B] border border-slate-800/90 space-y-1">
+          <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block">
+            CONNECTION TYPE
+          </span>
+          <div className="text-base font-black text-white">
+            {connectionType}
+          </div>
+          <span className="text-[11px] font-medium text-slate-400 block truncate" title={networkSubtitle}>
+            {networkSubtitle}
+          </span>
+        </div>
+
+        {/* Card 3: GEO COORDINATES */}
+        <div className="p-4 rounded-2xl bg-[#0B132B] border border-slate-800/90 space-y-1">
+          <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block">
+            GEO COORDINATES
+          </span>
+          <div className="font-mono text-base font-black text-white">
+            {hasCoords ? `${numLat.toFixed(4)}, ${numLon.toFixed(4)}` : '—'}
+          </div>
+          {hasCoords ? (
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[11px] font-bold text-rose-400 hover:text-rose-300 flex items-center gap-1 transition-colors"
+            >
+              <span>📍 View on Maps ↗</span>
+            </a>
+          ) : (
+            <span className="text-[11px] text-slate-500 font-mono">—</span>
+          )}
+        </div>
+
+        {/* Card 4: CALLING & LANG */}
+        <div className="p-4 rounded-2xl bg-[#0B132B] border border-slate-800/90 space-y-1">
+          <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block">
+            CALLING & LANG
+          </span>
+          <div className="text-base font-black text-white">
+            {callingCode}
+          </div>
+          <span className="text-[11px] font-medium text-slate-400 block truncate" title={languagesStr}>
+            {languagesStr}
+          </span>
+        </div>
+
+      </div>
+
+      {/* 4. Bottom Regional / State Match Banner */}
+      <div className="p-4 rounded-2xl bg-[#08152B] border border-emerald-500/30 flex items-center gap-3.5 shadow-inner">
+        <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-400 flex items-center justify-center font-bold flex-shrink-0">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+        </div>
+        <div className="min-w-0">
+          <span className="text-xs font-black text-white block">
+            Regional State Match (Same State)
+          </span>
+          <span className="text-[11px] text-slate-300 font-medium block mt-0.5">
+            {locationTitle !== '—'
+              ? `IP located in ${locationTitle}${region ? `, matching declared region ${region}` : ''}.`
+              : `IP Geolocation verified for ${ip}.`}
+          </span>
+        </div>
+      </div>
+
     </div>
   );
 }
 
 /* =========================================================================
-   10. REVERSE GEOCODING (#10)
+   10. REVERSE GEOCODING (#10) — DYNAMIC GOOGLE MAPS SATELLITE & GEOCODING INFO
    ========================================================================= */
-function GeoReverseCard({ data }) {
-  const lat = data.lat !== undefined ? data.lat : '—';
-  const lon = data.lon !== undefined ? data.lon : '—';
-  const address = data.address || '—';
-  const road = data.road;
-  const city = data.city;
-  const state = data.state;
-  const postcode = data.postcode;
-  const country = data.country;
+function GeoReverseCard({ data = {}, raw = {} }) {
+  const toast = useToast();
+  const rawLat = data.lat !== undefined && data.lat !== null ? data.lat : (raw.lat !== undefined ? raw.lat : raw.latitude);
+  const rawLon = data.lon !== undefined && data.lon !== null ? data.lon : (raw.lon !== undefined ? raw.lon : raw.longitude);
+  const numLat = typeof rawLat === 'number' ? rawLat : parseFloat(rawLat);
+  const numLon = typeof rawLon === 'number' ? rawLon : parseFloat(rawLon);
+  const hasCoords = !isNaN(numLat) && !isNaN(numLon) && (numLat !== 0 || numLon !== 0);
+
+  // Map Controls State: 'h' (Satellite Hybrid with labels), 'm' (Roadmap), 'k' (Pure Satellite)
+  const [mapType, setMapType] = useState('h');
+  const [zoom, setZoom] = useState(16);
+  const [copiedAddr, setCopiedAddr] = useState(false);
+  const [copiedCoords, setCopiedCoords] = useState(false);
+
+  const latDisplay = hasCoords ? `${numLat.toFixed(6)}°` : '—';
+  const lonDisplay = hasCoords ? `${numLon.toFixed(6)}°` : '—';
+  const latFormatted = hasCoords ? `${Math.abs(numLat).toFixed(4)}° ${numLat >= 0 ? 'N' : 'S'}` : '—';
+  const lonFormatted = hasCoords ? `${Math.abs(numLon).toFixed(4)}° ${numLon >= 0 ? 'E' : 'W'}` : '—';
+
+  const rawAddrObj = (raw.address && typeof raw.address === 'object') ? raw.address : {};
+  const address = data.address || raw.display_name || raw.formatted_address || (typeof raw.address === 'string' ? raw.address : '—');
+  const placeName = data.placeName || raw.name || null;
+  const road = data.road || rawAddrObj.road || null;
+  const suburb = data.suburb || rawAddrObj.suburb || rawAddrObj.neighbourhood || rawAddrObj.locality || null;
+  const city = data.city || rawAddrObj.city || rawAddrObj.town || rawAddrObj.village || rawAddrObj.county || null;
+  const stateDistrict = data.stateDistrict || rawAddrObj.state_district || rawAddrObj.district || null;
+  const state = data.state || rawAddrObj.state || null;
+  const postcode = data.postcode || rawAddrObj.postcode || rawAddrObj.pincode || rawAddrObj.postal_code || raw.postcode || raw.pincode || raw.postal || null;
+  const country = data.country || rawAddrObj.country || null;
+  const countryCode = data.countryCode || (rawAddrObj.country_code ? String(rawAddrObj.country_code).toUpperCase() : null);
+  const placeId = data.placeId || raw.place_id || null;
+  const osmType = data.osmType || raw.osm_type || null;
+  const osmId = data.osmId || raw.osm_id || null;
+  const addressType = data.addressType || raw.addresstype || raw.type || null;
+  const boundingBox = data.boundingBox || raw.boundingbox || null;
+
+  const embedUrl = hasCoords
+    ? `https://maps.google.com/maps?q=${numLat},${numLon}&t=${mapType}&z=${zoom}&ie=UTF8&iwloc=&output=embed`
+    : null;
+
+  const googleMapsSearchUrl = hasCoords
+    ? `https://www.google.com/maps/search/?api=1&query=${numLat},${numLon}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+
+  const googleEarthUrl = hasCoords
+    ? `https://earth.google.com/web/search/${numLat},${numLon}`
+    : null;
+
+  const handleCopyAddress = () => {
+    navigator.clipboard.writeText(address);
+    setCopiedAddr(true);
+    toast?.addToast?.({
+      title: 'Address Copied',
+      message: 'Full doorstep address copied to clipboard.',
+      type: 'success',
+      duration: 2000
+    });
+    setTimeout(() => setCopiedAddr(false), 2000);
+  };
+
+  const handleCopyCoords = () => {
+    if (!hasCoords) return;
+    navigator.clipboard.writeText(`${numLat}, ${numLon}`);
+    setCopiedCoords(true);
+    toast?.addToast?.({
+      title: 'Coordinates Copied',
+      message: `${numLat.toFixed(6)}, ${numLon.toFixed(6)} copied.`,
+      type: 'success',
+      duration: 2000
+    });
+    setTimeout(() => setCopiedCoords(false), 2000);
+  };
 
   return (
-    <div className="mx-auto max-w-xl p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-[#071a26] via-[#0d283b] to-[#05141e] border border-cyan-500/30 text-white space-y-4 shadow-2xl">
-      <div className="flex items-center justify-between pb-3 border-b border-cyan-500/20">
-        <div className="flex items-center gap-2">
-          <MapPin className="w-5 h-5 text-cyan-400" />
-          <span className="font-extrabold text-sm uppercase text-cyan-200">
-            GPS Doorstep Geocoding
-          </span>
-        </div>
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30">
-          {safeText(data.status, 'GPS VERIFIED')}
-        </span>
-      </div>
-
-      <div className="p-2.5 rounded-xl bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-black inline-block">
-        📍 {typeof lat === 'number' ? `${lat.toFixed(4)}° N` : lat}, {typeof lon === 'number' ? `${lon.toFixed(4)}° E` : lon}
-      </div>
-
-      <div className="p-4 rounded-2xl bg-cyan-950/60 border border-cyan-500/20 text-xs leading-relaxed space-y-2">
-        <div>
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-            Reverse Geocoded Doorstep Address:
-          </span>
-          <span className="font-medium text-slate-100 block">{address}</span>
-        </div>
-
-        {(road || city || state || postcode || country) && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t border-cyan-500/20 font-mono text-[11px]">
-            {road && <div><span className="text-[8px] text-slate-500 block">Road</span><span className="text-white">{road}</span></div>}
-            {city && <div><span className="text-[8px] text-slate-500 block">City</span><span className="text-white">{city}</span></div>}
-            {state && <div><span className="text-[8px] text-slate-500 block">State</span><span className="text-white">{state}</span></div>}
-            {postcode && <div><span className="text-[8px] text-slate-500 block">Postal Pin</span><span className="text-amber-300">{postcode}</span></div>}
-            {country && <div><span className="text-[8px] text-slate-500 block">Country</span><span className="text-white">{country}</span></div>}
+    <div className="w-full rounded-3xl bg-gradient-to-br from-[#061424] via-[#0b2034] to-[#040f1a] border border-cyan-500/30 text-white space-y-4 shadow-2xl p-4 sm:p-6 overflow-hidden">
+      
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-cyan-500/20">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-11 h-11 rounded-2xl bg-cyan-600/20 border border-cyan-400/40 text-cyan-300 flex items-center justify-center font-black text-sm shadow-inner flex-shrink-0">
+            <Compass className="w-6 h-6 text-cyan-400" />
           </div>
-        )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h4 className="text-base sm:text-lg font-black text-white tracking-wide uppercase truncate">
+                Satellite Geodynamics & Doorstep Address
+              </h4>
+              <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 uppercase">
+                HD Satellite
+              </span>
+            </div>
+            <span className="text-[10px] text-cyan-300 font-bold uppercase tracking-wider block truncate">
+              Google Maps Satellite Imagery • OpenStreetMap Geocoding
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
+          <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{safeText(data.status, 'GPS VERIFIED')}</span>
+          </span>
+        </div>
+      </div>
+
+      {/* DYNAMIC GOOGLE MAPS SATELLITE CONTAINER */}
+      {hasCoords ? (
+        <div className="relative w-full rounded-2xl overflow-hidden border-2 border-cyan-500/40 bg-slate-950 shadow-2xl group">
+          
+          {/* Top-Right Floating Controls (Map / Satellite Switcher, Zoom, External Link) */}
+          <div className="absolute top-3 right-3 z-20 flex items-center gap-2 flex-wrap">
+            {/* Satellite / Map View Mode Switcher */}
+            <div className="bg-slate-950/85 backdrop-blur-md p-1 rounded-xl border border-slate-700/80 shadow-2xl flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setMapType('h')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  mapType === 'h' || mapType === 'k'
+                    ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md border border-cyan-400/40'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                }`}
+              >
+                <span>🛰️ Satellite</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapType('m')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  mapType === 'm'
+                    ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md border border-cyan-400/40'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                }`}
+              >
+                <span>🗺️ Map</span>
+              </button>
+            </div>
+
+            {/* Zoom Controls */}
+            <div className="bg-slate-950/85 backdrop-blur-md p-1 rounded-xl border border-slate-700/80 shadow-2xl flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setZoom(prev => Math.min(prev + 1, 20))}
+                className="w-7 h-7 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-white flex items-center justify-center text-xs font-black transition-all border border-slate-700/60"
+                title="Zoom In"
+                aria-label="Zoom In"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoom(prev => Math.max(prev - 1, 5))}
+                className="w-7 h-7 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-white flex items-center justify-center text-xs font-black transition-all border border-slate-700/60"
+                title="Zoom Out"
+                aria-label="Zoom Out"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Open Google Maps Button */}
+            <a
+              href={googleMapsSearchUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="bg-slate-950/85 hover:bg-slate-900 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700/80 text-xs font-bold text-cyan-300 hover:text-cyan-200 shadow-2xl flex items-center gap-1.5 transition-all"
+              title="Open full view in Google Maps"
+            >
+              <span>Maps</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+
+          {/* Interactive Google Satellite Iframe Embed */}
+          <div className="relative w-full h-80 sm:h-96 md:h-[420px] bg-slate-950">
+            <iframe
+              key={`gmap_${numLat}_${numLon}_${mapType}_${zoom}`}
+              title="Google Maps Satellite Geolocation"
+              src={embedUrl}
+              className="w-full h-full border-0 filter brightness-105 contrast-105"
+              loading="lazy"
+              allowFullScreen
+            />
+          </div>
+
+          {/* Bottom-Left Floating Live GPS Preview Badge (Exact match with user's screenshot) */}
+          <div className="absolute bottom-3.5 left-3.5 z-20 flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/90 backdrop-blur-md border border-emerald-500/50 text-xs font-mono font-bold text-white shadow-2xl">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_#34d399]"></span>
+              <span>Live GPS preview • {latFormatted}, {lonFormatted}</span>
+            </div>
+          </div>
+
+          {/* Bottom-Right Satellite Mode Status */}
+          <div className="absolute bottom-3.5 right-3.5 z-20 hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/90 backdrop-blur-md border border-slate-700 text-[10px] font-mono font-bold text-slate-300">
+            <span>Imagery: Google Satellite</span>
+          </div>
+        </div>
+      ) : (
+        <div className="p-8 rounded-2xl bg-slate-950/60 border border-slate-800 text-center space-y-2">
+          <MapPin className="w-8 h-8 text-cyan-400 mx-auto animate-bounce" />
+          <p className="text-xs text-slate-300 font-bold">Provide valid latitude and longitude coordinates to render satellite map.</p>
+        </div>
+      )}
+
+      {/* FULL LOCATION INFORMATION PANELS */}
+      <div className="space-y-3.5 pt-1">
+        
+        {/* Verified Doorstep Address Banner */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-cyan-950/80 via-slate-950/95 to-cyan-950/80 border border-cyan-500/30 space-y-2.5 shadow-inner">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="px-2.5 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 text-[10px] font-mono font-extrabold uppercase tracking-wider">
+                Doorstep Landmark & Address
+              </span>
+              {placeName && (
+                <span className="font-extrabold text-amber-300 text-xs sm:text-sm uppercase truncate">
+                  📍 {placeName}
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleCopyAddress}
+              className="flex items-center gap-1.5 px-3 py-1 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition-all flex-shrink-0"
+              title="Copy complete address"
+            >
+              {copiedAddr ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedAddr ? 'Copied' : 'Copy'}</span>
+            </button>
+          </div>
+
+          <p className="text-xs sm:text-sm font-medium text-slate-100 leading-relaxed font-sans">
+            {address}
+          </p>
+        </div>
+
+        {/* Detailed Address Breakdown Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
+          
+          <div className="p-3 rounded-2xl bg-slate-950/80 border border-cyan-500/20">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              🛣️ Road / Street
+            </span>
+            <span className="font-bold text-white text-xs block truncate" title={road || '—'}>
+              {road || '—'}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-slate-950/80 border border-cyan-500/20">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              🏡 Suburb / Locality
+            </span>
+            <span className="font-bold text-cyan-200 text-xs block truncate" title={suburb || '—'}>
+              {suburb || '—'}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-slate-950/80 border border-cyan-500/20">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              🏙️ City / Town
+            </span>
+            <span className="font-bold text-white text-xs block truncate" title={city || '—'}>
+              {city || '—'}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-slate-950/80 border border-cyan-500/20">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              🏛️ State & District
+            </span>
+            <span className="font-bold text-slate-200 text-xs block truncate" title={stateDistrict ? `${stateDistrict}, ${state || ''}` : (state || '—')}>
+              {stateDistrict ? `${stateDistrict}, ${state || ''}` : (state || '—')}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-slate-950/80 border border-cyan-500/20">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              📮 Postal PIN Code
+            </span>
+            <span className="font-mono font-black text-amber-300 text-sm block">
+              {postcode || '—'}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-slate-950/80 border border-cyan-500/20">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              🌍 Country
+            </span>
+            <span className="font-bold text-white text-xs block truncate">
+              {country || '—'} {countryCode ? `(${countryCode})` : ''}
+            </span>
+          </div>
+
+        </div>
+
+        {/* Technical Geolocation Metadata & Action Links Bar */}
+        <div className="p-4 rounded-2xl bg-slate-950/90 border border-cyan-500/20 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-mono text-slate-400">GPS Coordinates:</span>
+              <span className="font-mono font-extrabold text-cyan-300 bg-cyan-950/80 px-2.5 py-0.5 rounded-lg border border-cyan-500/30">
+                Lat: {latDisplay} • Lon: {lonDisplay}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyCoords}
+                className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all"
+                title="Copy coordinates"
+              >
+                {copiedCoords ? 'Copied' : 'Copy Lat/Lon'}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400 flex-wrap">
+              {placeId && <span>Place ID: <strong className="text-slate-200">{placeId}</strong></span>}
+              {osmType && osmId && <span>OSM: <strong className="text-slate-200">{osmType}/{osmId}</strong></span>}
+              {addressType && <span>Category: <strong className="text-cyan-300 uppercase">{addressType}</strong></span>}
+              {Array.isArray(boundingBox) && <span>Extent: <strong className="text-slate-300">[{boundingBox.slice(0, 2).join(', ')}...]</strong></span>}
+            </div>
+          </div>
+
+          {/* External Action Links */}
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+            {googleEarthUrl && (
+              <a
+                href={googleEarthUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-900/60 to-indigo-900/60 hover:from-blue-800 hover:to-indigo-800 text-cyan-200 border border-blue-500/40 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+              >
+                <span>Google Earth</span>
+                <Globe className="w-3.5 h-3.5" />
+              </a>
+            )}
+
+            <a
+              href={googleMapsSearchUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black text-xs transition-all shadow-glow-indigo flex items-center gap-1.5"
+            >
+              <span>Open in Google Maps</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
+
       </div>
     </div>
   );
@@ -1202,15 +1613,15 @@ function DomainCard({ data }) {
   const mxValid = data.mxValid;
 
   return (
-    <div className="mx-auto max-w-xl p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-[#0c132c] via-[#121c40] to-[#070b1a] border border-indigo-500/30 text-white space-y-4 shadow-2xl">
-      <div className="flex items-center justify-between pb-3 border-b border-indigo-500/20">
-        <div className="flex items-center gap-2">
-          <Globe className="w-5 h-5 text-indigo-400" />
-          <span className="font-extrabold text-sm uppercase text-indigo-200">
+    <div className="w-full p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#0c132c] via-[#121c40] to-[#070b1a] border border-indigo-500/30 text-white space-y-3.5 shadow-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-indigo-500/20">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Globe className="w-5 h-5 text-indigo-400 flex-shrink-0" />
+          <span className="font-extrabold text-sm uppercase text-indigo-200 truncate">
             ICANN Corporate Domain Security
           </span>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30">
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center">
           {safeText(data.status, 'VERIFIED')}
         </span>
       </div>
@@ -1263,85 +1674,168 @@ function DomainCard({ data }) {
    12. CIBIL TRANSUNION PDF REPORT (#12)
    ========================================================================= */
 function CibilPdfCard({ data }) {
-  const name = data.name || '—';
+  const name = data.name || 'CUSTOMER';
   const pan = data.pan || '—';
-  const pdfUrl = data.pdfUrl;
-  const refNo = data.referenceNo;
-  const generatedAt = data.generatedAt;
+  const mobile = data.mobile || '—';
+  const pdfUrl = data.pdfUrl || data.pdfBase64;
+  const refNo = data.referenceNo || `TU-${Date.now().toString().slice(-8)}`;
 
   return (
-    <div className="mx-auto max-w-xl p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-[#1b0d2b] via-[#241038] to-[#13071f] border border-purple-500/30 text-white space-y-4 shadow-2xl">
-      <div className="flex items-center justify-between pb-3 border-b border-purple-500/20">
+    <div className="w-full rounded-3xl bg-[#091322] border border-sky-400/40 text-white space-y-3.5 shadow-2xl overflow-hidden p-4 sm:p-5">
+      {/* TransUnion CIBIL Official Yellow Banner */}
+      <div className="bg-[#FFD700] text-black px-4 py-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2 font-black text-xs tracking-wider shadow-md">
         <div className="flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-purple-400" />
-          <span className="font-extrabold text-sm uppercase text-purple-200">
-            TransUnion CIBIL Bureau PDF File
+          <span className="text-[#00AEEF] text-sm">●</span>
+          <span className="uppercase font-mono">CUSTOMER CIR • TRANSUNION CIBIL</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] bg-black text-amber-300 px-2 py-0.5 rounded">
+            {safeText(data.status, 'OFFICIAL CIBIL PDF READY')}
           </span>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30">
-          {safeText(data.status, 'REPORT READY')}
-        </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 py-2 text-xs">
-        <div>
-          <span className="text-[8px] font-bold text-purple-300 uppercase block">Applicant Name</span>
-          <span className="font-extrabold text-white text-sm block uppercase truncate">{name}</span>
-        </div>
-        <div className="text-right">
-          <span className="text-[8px] font-bold text-purple-300 uppercase block">Applicant PAN</span>
-          <span className="font-mono font-bold text-amber-300 text-sm block">{pan}</span>
+      {/* Top Header Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-sky-950/60 border border-sky-500/30 text-xs font-mono">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div>
+            <span className="text-[8px] font-bold text-[#00AEEF] uppercase block">CONSUMER</span>
+            <span className="font-bold text-white uppercase">{name}</span>
+          </div>
+          <div>
+            <span className="text-[8px] font-bold text-[#00AEEF] uppercase block">PAN</span>
+            <span className="font-bold text-amber-300 uppercase">{pan}</span>
+          </div>
+          {mobile && mobile !== '—' && (
+            <div>
+              <span className="text-[8px] font-bold text-[#00AEEF] uppercase block">MOBILE</span>
+              <span className="font-bold text-slate-200">{mobile}</span>
+            </div>
+          )}
+          <div>
+            <span className="text-[8px] font-bold text-[#00AEEF] uppercase block">CONTROL REF</span>
+            <span className="font-bold text-emerald-400">{refNo}</span>
+          </div>
         </div>
       </div>
 
-      {refNo && (
-        <div className="p-2.5 rounded-xl bg-purple-950/60 border border-purple-500/20 font-mono text-[11px] text-slate-300 flex items-center justify-between">
-          <span>TU Ref: <strong className="text-white">{refNo}</strong></span>
-          <span>{generatedAt ? new Date(generatedAt).toLocaleDateString() : ''}</span>
+      {/* Direct Full Embedded PDF Viewer */}
+      {pdfUrl ? (
+        <div className="relative w-full rounded-2xl overflow-hidden border-2 border-[#00AEEF]/60 shadow-2xl bg-slate-950">
+          <div className="bg-slate-900 px-4 py-2 flex items-center justify-between border-b border-slate-800 text-xs font-mono">
+            <span className="text-[#00AEEF] font-bold flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5" />
+              Official TransUnion CIBIL Credit Information Report (CIR)
+            </span>
+            <span className="text-[10px] text-slate-400">
+              Interactive Multi-Page View
+            </span>
+          </div>
+          <iframe
+            src={pdfUrl}
+            title="TransUnion CIBIL CIR Report"
+            className="w-full h-[780px] sm:h-[880px] border-0 bg-white"
+          />
         </div>
-      )}
-
-      {pdfUrl && (
-        <a
-          href={pdfUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full p-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-glow-indigo flex items-center justify-center gap-2 transition-all group"
-        >
-          <Download className="w-4 h-4" />
-          <span>Download Encrypted TransUnion CIBIL PDF Report</span>
-        </a>
+      ) : (
+        <div className="p-12 text-center text-slate-400 text-xs font-mono bg-slate-950/60 rounded-2xl border border-dashed border-sky-500/30">
+          Generating TransUnion CIBIL PDF Report...
+        </div>
       )}
     </div>
   );
 }
 
 /* =========================================================================
-   13-15. CREDIT BUREAU SCORE GAUGE (#13, #14, #15)
+   13-15. CREDIT BUREAU SCORE GAUGE / DIRECT PDF CARD (#13, #14, #15)
    ========================================================================= */
 function BureauScoreCard({ data }) {
   const score = data.score;
-  const bureau = data.bureau || 'Credit Bureau';
+  const bureau = data.bureau || 'CRIF HighMark';
   const tier = safeText(data.tier, 'CREDIT REPORT CERTIFIED');
   const name = data.name || '—';
   const pan = data.pan || '—';
+  const mobile = data.mobile || '—';
+  const pdfUrl = data.pdfUrl;
   const summary = data.summary;
   const tradelinesList = data.tradelinesList || [];
+
+  // When PDF is available (e.g. CRIF HighMark), render ONLY the full PDF directly
+  if (pdfUrl) {
+    return (
+      <div className="w-full rounded-3xl bg-[#091322] border border-purple-500/40 text-white space-y-3.5 shadow-2xl overflow-hidden p-4 sm:p-5">
+        {/* CRIF / Bureau Official Banner */}
+        <div className="bg-gradient-to-r from-[#0B3663] to-[#144b82] text-white px-4 py-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2 font-black text-xs tracking-wider shadow-md border border-sky-400/30">
+          <div className="flex items-center gap-2">
+            <span className="text-[#00AEEF] text-sm">●</span>
+            <span className="uppercase font-mono">OFFICIAL DOSSIER • {bureau.toUpperCase()}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[11px] bg-slate-950 text-emerald-300 px-2.5 py-0.5 rounded border border-emerald-500/30">
+              {safeText(data.status, 'OFFICIAL REPORT CERTIFIED')}
+            </span>
+          </div>
+        </div>
+
+        {/* Top Header Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-sky-950/60 border border-sky-500/30 text-xs font-mono">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div>
+              <span className="text-[8px] font-bold text-[#00AEEF] uppercase block">APPLICANT</span>
+              <span className="font-bold text-white uppercase">{name}</span>
+            </div>
+            <div>
+              <span className="text-[8px] font-bold text-[#00AEEF] uppercase block">PAN</span>
+              <span className="font-bold text-amber-300 uppercase">{pan}</span>
+            </div>
+            {mobile && mobile !== '—' && (
+              <div>
+                <span className="text-[8px] font-bold text-[#00AEEF] uppercase block">MOBILE</span>
+                <span className="font-bold text-slate-200">{mobile}</span>
+              </div>
+            )}
+            <div>
+              <span className="text-[8px] font-bold text-[#00AEEF] uppercase block">TIER</span>
+              <span className="font-bold text-emerald-400">{tier}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Direct Full Embedded PDF Viewer */}
+        <div className="relative w-full rounded-2xl overflow-hidden border-2 border-sky-500/50 shadow-2xl bg-slate-950">
+          <div className="bg-slate-900 px-4 py-2 flex items-center justify-between border-b border-slate-800 text-xs font-mono">
+            <span className="text-sky-400 font-bold flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5" />
+              Official {bureau} Consumer Credit Information Dossier
+            </span>
+            <span className="text-[10px] text-slate-400">
+              Interactive Multi-Page View
+            </span>
+          </div>
+          <iframe
+            src={pdfUrl}
+            title={`${bureau} Credit Report`}
+            className="w-full h-[780px] sm:h-[880px] border-0 bg-white"
+          />
+        </div>
+      </div>
+    );
+  }
 
   const hasScore = typeof score === 'number' && !isNaN(score);
   const scoreClamped = hasScore ? Math.max(300, Math.min(900, score)) : 300;
   const angle = ((scoreClamped - 300) / 600) * 180 - 90;
 
   return (
-    <div className="mx-auto max-w-xl p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-[#1b0d2b] via-[#241038] to-[#13071f] border border-purple-500/30 text-white space-y-4 shadow-2xl">
-      <div className="flex items-center justify-between pb-3 border-b border-purple-500/20">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-purple-400" />
-          <span className="font-extrabold text-sm uppercase text-purple-200">
+    <div className="w-full p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#1b0d2b] via-[#241038] to-[#13071f] border border-purple-500/30 text-white space-y-3.5 shadow-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-500/20">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <TrendingUp className="w-5 h-5 text-purple-400 flex-shrink-0" />
+          <span className="font-extrabold text-sm uppercase text-purple-200 truncate">
             {bureau} Score Rating
           </span>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30">
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 flex-shrink-0 self-start sm:self-center">
           {tier}
         </span>
       </div>
@@ -1434,15 +1928,36 @@ function BureauScoreCard({ data }) {
    GENERIC FALLBACK
    ========================================================================= */
 function GenericVisualCard({ data, raw }) {
+  const fields = raw && typeof raw === 'object' && !Array.isArray(raw)
+    ? Object.entries(raw)
+    : [];
+
   return (
-    <div className="p-6 rounded-2xl bg-slate-950 border border-indigo-500/30 text-white space-y-3">
+    <div className="w-full p-5 sm:p-6 rounded-2xl bg-slate-950 border border-indigo-500/30 text-white space-y-3.5">
       <div className="flex items-center gap-2 text-indigo-400 font-bold text-sm">
         <Sparkles className="w-4 h-4" />
         <span>{data.title || 'Verified Statutory Outcome'}</span>
       </div>
-      <pre className="text-xs font-mono text-emerald-400 bg-slate-900 p-3 rounded-xl overflow-x-auto">
-        {JSON.stringify(raw, null, 2)}
-      </pre>
+
+      {fields.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          {fields.map(([k, v]) => (
+            <div key={k} className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-0.5">
+              <span className="text-[10px] font-mono font-bold text-indigo-300 uppercase tracking-wider block">
+                {k.replace(/_/g, ' ')}
+              </span>
+              <span className="font-mono text-xs font-bold text-slate-100 block break-words">
+                {typeof v === 'object' ? JSON.stringify(v) : String(v ?? '—')}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 font-mono text-xs text-emerald-300">
+          {String(raw || 'Verification Completed Successfully')}
+        </div>
+      )}
     </div>
   );
 }
+

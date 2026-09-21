@@ -17,6 +17,7 @@ import {
   Award
 } from 'lucide-react';
 import { ALL_APIS, TOTAL_COST_PER_CUSTOMER } from '../../config/constants.js';
+import { api } from '../../services/api.js';
 
 export default function BatchPipelineRunner({ isOpen, onClose }) {
   const [running, setRunning] = useState(false);
@@ -45,20 +46,31 @@ export default function BatchPipelineRunner({ isOpen, onClose }) {
     for (let i = 0; i < ALL_APIS.length; i++) {
       setCurrentIndex(i);
       const apiItem = ALL_APIS[i];
-      const latency = Math.floor(120 + Math.random() * 160);
 
-      // Simulate step delay
-      await new Promise(r => setTimeout(r, latency));
+      try {
+        const res = await api.testApi(apiItem.id, apiItem.sampleInput || {});
+        currentCost += apiItem.cost;
+        setTotalAccumulatedCost(Number(currentCost.toFixed(2)));
 
-      currentCost += apiItem.cost;
-      setTotalAccumulatedCost(Number(currentCost.toFixed(2)));
+        finishedList.push({
+          ...apiItem,
+          status: res.success ? 'VERIFIED' : 'GATEWAY_RESPONSE',
+          latency: res.latencyMs || 250,
+          response: res,
+          time: new Date().toLocaleTimeString()
+        });
+      } catch (err) {
+        currentCost += apiItem.cost;
+        setTotalAccumulatedCost(Number(currentCost.toFixed(2)));
 
-      finishedList.push({
-        ...apiItem,
-        status: 'VERIFIED',
-        latency,
-        time: new Date().toLocaleTimeString()
-      });
+        finishedList.push({
+          ...apiItem,
+          status: 'ERROR',
+          latency: 0,
+          error: err.message,
+          time: new Date().toLocaleTimeString()
+        });
+      }
 
       setCompletedApis([...finishedList]);
     }

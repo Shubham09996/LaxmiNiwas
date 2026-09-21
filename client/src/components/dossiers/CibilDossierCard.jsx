@@ -9,12 +9,12 @@ import {
 
 export default function CibilDossierCard({ dossier }) {
   const details = dossier.cibilDetails || {};
-  const score = details.creditScore || 785;
+  const score = details.creditScore || details.score || null;
   const summary = details.summary || {};
-  const accounts = details.accounts || [];
+  const accounts = details.accounts || details.tradelines || [];
   const inquiries = details.recentInquiries || [];
 
-  const percentage = Math.round(((score - 300) / 600) * 100);
+  const percentage = score ? Math.round(((score - 300) / 600) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -57,16 +57,16 @@ export default function CibilDossierCard({ dossier }) {
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-3xl font-extrabold text-slate-900 font-sans tracking-tight tnum">
-                  {score}
+                  {score || '—'}
                 </span>
                 <span className="text-[11px] font-semibold text-slate-400">
-                  out of 900
+                  {score ? 'out of 900' : 'Score Pending'}
                 </span>
               </div>
             </div>
 
             <span className="mt-3 text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
-              Excellent Rating (Prime)
+              {score ? (score >= 750 ? 'Prime Credit' : 'Bureau File Active') : 'Report Generated'}
             </span>
           </div>
 
@@ -77,9 +77,9 @@ export default function CibilDossierCard({ dossier }) {
                 Total Loans & Cards
               </span>
               <span className="text-base font-bold text-slate-900 tnum block mt-0.5">
-                {summary.totalAccounts || 6}
+                {summary.totalAccounts !== undefined ? summary.totalAccounts : accounts.length || '—'}
               </span>
-              <span className="text-[11px] text-emerald-600 font-medium">{summary.activeAccounts || 4} Active</span>
+              <span className="text-[11px] text-emerald-600 font-medium">{summary.activeAccounts !== undefined ? `${summary.activeAccounts} Active` : 'Bureau File'}</span>
             </div>
 
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
@@ -87,9 +87,9 @@ export default function CibilDossierCard({ dossier }) {
                 Total Sanctioned Limit
               </span>
               <span className="text-base font-bold text-slate-900 tnum block mt-0.5">
-                ₹ {(summary.totalSanctionedLimit || 3850000).toLocaleString('en-IN')}
+                {summary.totalSanctionedLimit ? `₹ ${Number(summary.totalSanctionedLimit).toLocaleString('en-IN')}` : '—'}
               </span>
-              <span className="text-[11px] text-slate-500">Total Credit Line</span>
+              <span className="text-[11px] text-slate-500">Credit Line</span>
             </div>
 
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
@@ -97,9 +97,9 @@ export default function CibilDossierCard({ dossier }) {
                 Current Outstanding
               </span>
               <span className="text-base font-bold text-slate-900 tnum block mt-0.5">
-                ₹ {(summary.currentBalance || 420000).toLocaleString('en-IN')}
+                {summary.currentBalance ? `₹ ${Number(summary.currentBalance).toLocaleString('en-IN')}` : '—'}
               </span>
-              <span className="text-[11px] text-slate-500">Balance to Pay</span>
+              <span className="text-[11px] text-slate-500">Balance</span>
             </div>
 
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
@@ -107,9 +107,9 @@ export default function CibilDossierCard({ dossier }) {
                 Credit Card Usage
               </span>
               <span className="text-base font-bold text-emerald-600 tnum block mt-0.5">
-                {summary.creditUtilizationRatio || '10.9%'}
+                {summary.creditUtilizationRatio || '—'}
               </span>
-              <span className="text-[11px] text-emerald-600 font-medium">Very Good (&lt;30%)</span>
+              <span className="text-[11px] text-emerald-600 font-medium">Utilization</span>
             </div>
 
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
@@ -117,9 +117,9 @@ export default function CibilDossierCard({ dossier }) {
                 Payment Track
               </span>
               <span className="text-base font-bold text-emerald-600 tnum block mt-0.5">
-                100% On-Time
+                {summary.paymentTrack || 'Verified'}
               </span>
-              <span className="text-[11px] text-emerald-600 font-medium">36 Months Clean</span>
+              <span className="text-[11px] text-emerald-600 font-medium">Bureau History</span>
             </div>
 
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
@@ -127,9 +127,9 @@ export default function CibilDossierCard({ dossier }) {
                 Missed Payments
               </span>
               <span className="text-base font-bold text-emerald-600 tnum block mt-0.5">
-                0 Overdue
+                {summary.overdueAccounts !== undefined ? `${summary.overdueAccounts} Overdue` : 'Clean'}
               </span>
-              <span className="text-[11px] text-emerald-600 font-medium">No late payments</span>
+              <span className="text-[11px] text-emerald-600 font-medium">Late Status</span>
             </div>
           </div>
         </div>

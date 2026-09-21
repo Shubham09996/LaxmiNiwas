@@ -18,13 +18,18 @@ const allowedOriginsFromEnv = (process.env.CLIENT_ORIGIN || process.env.ALLOWED_
   .map(s => s.trim())
   .filter(Boolean);
 
+const allowedOriginsList = [
+  'https://laxmi-niwas-eight.vercel.app',
+  ...allowedOriginsFromEnv
+];
+
 const isOriginAllowed = (origin) => {
   if (!origin) return true; // Server-to-server, Postman, curl
   if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
   if (/^https:\/\/.*\.vercel\.app$/.test(origin)) return true;
   if (/^https:\/\/.*\.onrender\.com$/.test(origin)) return true;
   if (/^https:\/\/(.*\.)?laxminiwas\.com$/.test(origin)) return true;
-  if (allowedOriginsFromEnv.includes(origin)) return true;
+  if (allowedOriginsList.includes(origin)) return true;
   return true; // Universal fallback in production to guarantee zero CORS failures
 };
 

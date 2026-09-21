@@ -25,8 +25,8 @@ export default function LoginPage() {
   const location = useLocation();
 
   // Form states
-  const [email, setEmail] = useState('admin@laxminiwas.in');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [capsLockActive, setCapsLockActive] = useState(false);
@@ -223,13 +223,14 @@ export default function LoginPage() {
                 <input
                   type="text"
                   required
+                  autoComplete="username"
                   value={email}
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onKeyUp={handleKeyUp}
-                  placeholder="name@laxminiwas.in"
+                  placeholder="name@company.com or username"
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all font-mono"
                 />
               </div>
@@ -262,6 +263,7 @@ export default function LoginPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
+                  autoComplete="current-password"
                   value={password}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}

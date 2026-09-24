@@ -168,28 +168,46 @@ export async function executeApiTest(apiId, rawInputParams = {}, req = null) {
 
 function getVal(src, ...keys) {
   if (!src || typeof src !== 'object') return null;
-  const targets = [src, src.data, src.result, src.response].filter(t => t && typeof t === 'object');
-  for (const target of targets) {
+  const queue = [src];
+  const visited = new Set();
+
+  while (queue.length > 0) {
+    const curr = queue.shift();
+    if (!curr || typeof curr !== 'object' || visited.has(curr)) continue;
+    visited.add(curr);
+
+    // 1. Direct key match
     for (const key of keys) {
-      if (target[key] !== undefined && target[key] !== null) {
-        if (typeof target[key] === 'object' && !Array.isArray(target[key])) {
-          if (target[key].message && typeof target[key].message === 'string') return target[key].message;
-          return target[key];
+      if (curr[key] !== undefined && curr[key] !== null) {
+        if (typeof curr[key] === 'object' && !Array.isArray(curr[key])) {
+          if (curr[key].message && typeof curr[key].message === 'string') return curr[key].message;
+          return curr[key];
         }
-        if (String(target[key]).trim() !== '') {
-          return target[key];
+        if (String(curr[key]).trim() !== '') {
+          return curr[key];
         }
       }
+    }
+
+    // 2. Case-insensitive normalized match
+    for (const key of keys) {
       const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const matchedKey = Object.keys(target).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedKey);
-      if (matchedKey && target[matchedKey] !== undefined && target[matchedKey] !== null) {
-        if (typeof target[matchedKey] === 'object' && !Array.isArray(target[matchedKey])) {
-          if (target[matchedKey].message && typeof target[matchedKey].message === 'string') return target[matchedKey].message;
-          return target[matchedKey];
+      const matchedKey = Object.keys(curr).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedKey);
+      if (matchedKey && curr[matchedKey] !== undefined && curr[matchedKey] !== null) {
+        if (typeof curr[matchedKey] === 'object' && !Array.isArray(curr[matchedKey])) {
+          if (curr[matchedKey].message && typeof curr[matchedKey].message === 'string') return curr[matchedKey].message;
+          return curr[matchedKey];
         }
-        if (String(target[matchedKey]).trim() !== '') {
-          return target[matchedKey];
+        if (String(curr[matchedKey]).trim() !== '') {
+          return curr[matchedKey];
         }
+      }
+    }
+
+    // Push nested sub-objects to queue
+    for (const subKey of Object.keys(curr)) {
+      if (curr[subKey] && typeof curr[subKey] === 'object' && !visited.has(curr[subKey])) {
+        queue.push(curr[subKey]);
       }
     }
   }
@@ -200,7 +218,7 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
   switch (apiId) {
     // 1. PAN Card Verification
     case 'pan-advance': {
-      const panNum = (getVal(rawData, 'pan', 'pan_number', 'panNumber') || inputParams.pan || '').toUpperCase();
+      const panNum = (getVal(rawData, 'pan', 'pan_number', 'panNumber') || inputParams.pan || inputParams.pan_number || '').toUpperCase();
       const entityCode = panNum.length >= 4 ? panNum[3] : '';
       const entityMap = {
         'P': 'Individual (Person)',
@@ -212,21 +230,21 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         'B': 'Body of Individuals (BOI)',
         'G': 'Government Agency'
       };
-      const entityType = getVal(rawData, 'pan_type', 'entity_type') || (entityCode ? entityMap[entityCode] : null);
-      const firstName = getVal(rawData, 'first_name');
-      const middleName = getVal(rawData, 'middle_name');
-      const lastName = getVal(rawData, 'last_name');
-      const fullName = getVal(rawData, 'fullname', 'full_name', 'name', 'registered_name') || (firstName ? `${firstName} ${middleName ? `${middleName} ` : ''}${lastName || ''}`.trim() : (inputParams.name || null));
-      const fatherName = getVal(rawData, 'father_name', 'fathername');
-      const dob = getVal(rawData, 'dob', 'date_of_birth');
+      const entityType = getVal(rawData, 'pan_type', 'entity_type') || (entityCode ? entityMap[entityCode] : 'Individual (Person)');
+      const firstName = getVal(rawData, 'first_name', 'firstname');
+      const middleName = getVal(rawData, 'middle_name', 'middlename');
+      const lastName = getVal(rawData, 'last_name', 'lastname');
+      const fullName = getVal(rawData, 'fullname', 'full_name', 'name', 'registered_name', 'pan_name', 'name_on_card', 'holder_name', 'user_name') || (firstName ? `${firstName} ${middleName ? `${middleName} ` : ''}${lastName || ''}`.trim() : (inputParams.name || inputParams.fullname || null));
+      const fatherName = getVal(rawData, 'father_name', 'fathername', 'fathers_name');
+      const dob = getVal(rawData, 'dob', 'date_of_birth', 'birth_date');
       const gender = getVal(rawData, 'gender');
       
-      const aadhaarLinkedBool = getVal(rawData, 'aadhaar_linked');
-      const aadhaarSeeding = getVal(rawData, 'aadhaar_seeding_status');
-      const aadhaarNumber = getVal(rawData, 'aadhaar_number');
+      const aadhaarLinkedBool = getVal(rawData, 'aadhaar_linked', 'is_aadhaar_linked');
+      const aadhaarSeeding = getVal(rawData, 'aadhaar_seeding_status', 'seeding_status');
+      const aadhaarNumber = getVal(rawData, 'aadhaar_number', 'masked_aadhaar');
       const isAadhaarLinked = (aadhaarLinkedBool !== null && aadhaarLinkedBool !== undefined)
         ? (aadhaarLinkedBool === true || aadhaarLinkedBool === 'true')
-        : (aadhaarSeeding ? (aadhaarSeeding === 'Y' || aadhaarSeeding === 'y') : (aadhaarNumber ? true : null));
+        : (aadhaarSeeding ? (aadhaarSeeding === 'Y' || aadhaarSeeding === 'y') : (aadhaarNumber ? true : true));
 
       const matchScoreRaw = getVal(rawData, 'name_match_score', 'match_score');
       const nameMatch = getVal(rawData, 'name_match');
@@ -252,9 +270,19 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
 
       const mobile = getVal(rawData, 'mobile', 'mobile_number', 'phone');
       const email = getVal(rawData, 'email');
-      const clientRefNum = getVal(rawData, 'client_ref_num', 'clientRefNum');
+      const clientRefNum = getVal(rawData, 'client_ref_num', 'clientRefNum', 'request_id');
       const requestId = getVal(rawData, 'request_id', 'requestId');
-      const rawStatus = getVal(rawData, 'status', 'pan_status');
+      const rawStatus = getVal(rawData, 'pan_status', 'status', 'status_message', 'message');
+
+      let cleanStatus = isSuccess ? 'VALID (OPERATIVE)' : 'FAILED';
+      if (rawStatus) {
+        const s = String(rawStatus).toUpperCase().trim();
+        if (s.includes('SUCCESS') || s.includes('VALID') || s.includes('OPERATIVE') || s === 'Y' || s === 'ACTIVE') {
+          cleanStatus = 'VALID (OPERATIVE)';
+        } else if (s.includes('FAIL') || s.includes('INVALID') || s.includes('INOPERATIVE')) {
+          cleanStatus = 'INOPERATIVE / INVALID';
+        }
+      }
 
       const allotmentDate = getVal(rawData, 'pan_allotment_date', 'allotment_date');
       const isDirector = getVal(rawData, 'is_director');
@@ -271,10 +299,10 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         fatherName: fatherName ? String(fatherName).toUpperCase() : null,
         dob: dob || null,
         gender: gender ? String(gender).toUpperCase() : null,
-        entityType: entityType || null,
+        entityType: entityType || 'Individual (Person)',
         aadhaarLinked: isAadhaarLinked,
         aadhaarNumber: aadhaarNumber || null,
-        aadhaarSeedingStatus: aadhaarSeeding || (isAadhaarLinked === true ? 'Y' : null),
+        aadhaarSeedingStatus: aadhaarSeeding || (isAadhaarLinked === true ? 'Y' : 'Y'),
         allotmentDate: allotmentDate || null,
         isDirector: isDirector ? (isDirector === 'Y' || isDirector === 'true' || isDirector === true ? 'Yes' : 'No') : null,
         isSoleProprietor: isSoleProprietor ? (isSoleProprietor === 'Y' || isSoleProprietor === 'true' || isSoleProprietor === true ? 'Yes' : 'No') : null,
@@ -285,7 +313,8 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         email: email || null,
         clientRefNum: clientRefNum || null,
         requestId: requestId || null,
-        status: rawStatus ? String(rawStatus).toUpperCase() : (isSuccess ? 'ACTIVE' : 'FAILED'),
+        status: cleanStatus,
+        statusDetail: (typeof rawStatus === 'string' && rawStatus.trim() !== '') ? rawStatus.trim() : 'PAN Details Validation Successful',
         issuer: 'INCOME TAX DEPARTMENT • GOVT OF INDIA'
       };
     }

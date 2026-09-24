@@ -85,15 +85,16 @@ export function buildEnrichedPayload(apiId, inputParams = {}, req = null) {
   const gender = inputParams.gender || '';
 
   switch (apiId) {
-    // 1. PAN Card Verification (Fuzzy Match)
+    // 1. PAN Card Verification (Plus)
     case 'pan-advance':
-    case 'pan':
+    case 'pan-plus':
+    case 'pan': {
+      const panVal = (pan || inputParams.pan_number || inputParams.pan || inputParams.panNumber || '').toUpperCase().trim();
       return {
-        pan: pan || (inputParams.pan ? String(inputParams.pan).trim().toUpperCase() : ''),
-        name: fullName || (inputParams.name ? String(inputParams.name).trim() : ''),
-        pan_display_name: inputParams.pan_display_name !== undefined ? String(inputParams.pan_display_name) : 'true',
-        name_match_method: inputParams.name_match_method || 'fuzzy'
+        pan: panVal,
+        pan_number: panVal
       };
+    }
 
     // 2. Aadhaar DigiLocker – Generate e-KYC URL
     case 'aadhaar-digilocker-generate':
@@ -113,7 +114,23 @@ export function buildEnrichedPayload(apiId, inputParams = {}, req = null) {
         client_id: inputParams.client_id || inputParams.clientId || ''
       };
 
-    // 4. Bank Account Verification (Penny-less / Active Check)
+    // 4. Aadhaar Fetch - Without OTP
+    case 'aadhaar-fetch-without-otp':
+    case 'aadhaar-without-otp':
+    case 'aadhar-fetch-without-otp':
+    case 'aadhar-without-otp': {
+      const aadhaarVal = (aadhaar || inputParams.aadhaar_number || inputParams.aadhar_number || inputParams.aadhaar || inputParams.aadhar || '').replace(/\D/g, '').slice(-12);
+      const nameVal = (fullName || inputParams.full_name || inputParams.name || '').trim();
+      return {
+        aadhaar_number: aadhaarVal,
+        aadhar_number: aadhaarVal,
+        aadhaar: aadhaarVal,
+        full_name: nameVal,
+        name: nameVal
+      };
+    }
+
+    // 5. Bank Account Verification (Penny-less / Active Check)
     case 'bank-account-verification':
     case 'bank-account':
       return {
@@ -128,7 +145,32 @@ export function buildEnrichedPayload(apiId, inputParams = {}, req = null) {
         ifsc: (inputParams.ifsc || inputParams.ifscCode || '').toUpperCase().trim()
       };
 
-    // 6. EPFO / UAN Lookup (via Mobile Number)
+    // 6. Mobile To Bank Advance (Live Account Linkage)
+    case 'mobile-to-bank-advance':
+    case 'mobile-to-bank':
+    case 'mobile-bank-advance': {
+      const mobileVal = (mobile || inputParams.mobile || inputParams.mobile_number || inputParams.phone || '').replace(/\D/g, '').slice(-10);
+      return {
+        mobile: mobileVal,
+        mobile_number: mobileVal,
+        user_consent: 'Y',
+        consent: 'Y'
+      };
+    }
+
+    // 7. Mobile To UPI Lookup Enhanced (Live NPCI Directory Lookup)
+    case 'mobile-upi-lookup-enhanced':
+    case 'mobile-upi-lookup':
+    case 'mobile-upi-enhanced':
+    case 'upi-lookup': {
+      const mobileVal = (mobile || inputParams.mobile || inputParams.mobile_number || inputParams.phone || '').replace(/\D/g, '').slice(-10);
+      return {
+        mobile: mobileVal,
+        mobile_number: mobileVal
+      };
+    }
+
+    // 8. EPFO / UAN Lookup (via Mobile Number)
     case 'uan-lookup-mobile':
     case 'uan-mobile':
       return {

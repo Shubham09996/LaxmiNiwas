@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import {
-  Zap,
   Play,
-  RotateCcw,
-  Search,
-  CheckCircle2,
   AlertCircle,
+  Edit2,
+  CheckCircle2,
   Clock,
-  ArrowRight,
+  Shield,
   ShieldCheck,
   CreditCard,
   Fingerprint,
@@ -20,31 +19,30 @@ import {
   Smartphone,
   Globe,
   MapPin,
-  Shield,
   TrendingUp,
+  ArrowRight,
+  User,
+  Check,
+  Building,
+  FileText,
+  Lock,
   Layers,
+  Copy,
   Sparkles,
-  Activity,
-  History,
-  Trash2,
-  UserCheck,
-  KeyRound,
-  RefreshCw,
-  Sliders,
+  Zap,
   CheckCheck,
-  Info
+  Radio,
+  ExternalLink,
+  ShieldAlert,
+  Search,
+  X
 } from 'lucide-react';
-import { ALL_APIS, TOTAL_COST_WITH_GST } from '../config/constants.js';
+import { ALL_APIS } from '../config/constants.js';
 import { api } from '../services/api.js';
 import { useToast } from '../context/ToastContext.jsx';
+import { soundEngine } from '../utils/soundEffects.js';
 import Visual3DCard from '../components/3d/Visual3DCard.jsx';
-
-const DEFAULT_MASTER_PROFILE = {
-  fullName: 'SHUBHAM GUPTA',
-  mobileNumber: '9876543210',
-  panNumber: 'AAACL7821M',
-  aadhaarNumber: '984512348921'
-};
+import { DEFAULT_MASTER_PROFILE } from '../components/applicant/ApplicantModal.jsx';
 
 function getDerivedPlaceholder(apiItem, key, master) {
   if (!apiItem || !apiItem.sampleInput) return '';
@@ -75,15 +73,135 @@ function getDerivedPlaceholder(apiItem, key, master) {
   return defaultVal;
 }
 
+function getHumanFieldLabel(key) {
+  const map = {
+    pan: 'PAN Card Number',
+    pan_id: 'PAN Card Number',
+    pan_number: 'PAN Card Number',
+    name: 'Applicant Full Legal Name',
+    fullname: 'Applicant Full Legal Name',
+    first_name: 'First Name',
+    forename: 'First Name',
+    last_name: 'Last Name',
+    surname: 'Surname / Last Name',
+    aadhaar_number: 'Aadhaar Number (12 Digits)',
+    client_id: 'DigiLocker Client Request ID',
+    account_number: 'Bank Account Number',
+    ifsc: 'Bank IFSC Code',
+    mobile: 'Registered Mobile Number',
+    mobile_number: 'Registered Mobile Number',
+    mobile_no: 'Registered Mobile Number',
+    phone_number: 'Registered Mobile Number',
+    uan: 'Universal Account Number (UAN)',
+    ip: 'IP Address to Evaluate',
+    lat: 'GPS Latitude',
+    lon: 'GPS Longitude',
+    domain: 'Corporate Domain Name',
+    gender: 'Gender',
+    date_of_birth: 'Date of Birth (YYYY-MM-DD)',
+    dob: 'Date of Birth (YYYY-MM-DD)',
+    redirectUrl: 'DigiLocker Redirect Callback URL',
+    logoUrl: 'Company Logo URL'
+  };
+  return map[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
+function getCtaButtonLabel(apiId, defaultName) {
+  const map = {
+    'pan-advance': 'Execute PAN Plus Verification',
+    'aadhaar-fetch-without-otp': 'Fetch Aadhaar Details (Without OTP)',
+    'aadhaar-digilocker-generate': 'Generate DigiLocker Consent URL',
+    'aadhaar-digilocker-fetch': 'Fetch Verified Aadhaar e-KYC',
+    'bank-account-verification': 'Verify Bank Beneficiary',
+    'bank-ifsc-lookup': 'Lookup Bank IFSC Details',
+    'mobile-to-bank-advance': 'Lookup Linked Bank Accounts (Advance)',
+    'mobile-upi-lookup-enhanced': 'Lookup Linked UPI / VPA Handle',
+    'uan-lookup-mobile': 'Search Linked UAN Records',
+    'uan-direct-history': 'Fetch UAN Service Record',
+    'mobile-profile-prefill': 'Fetch Telecom Demographic Data',
+    'ip-fraud-geolocation': 'Evaluate IP Fraud Risk',
+    'reverse-geocoding': 'Reverse Geocode Location',
+    'domain-age-security': 'Validate Domain & MX Security',
+    'cibil-transunion-pdf': 'Generate Official TransUnion CIBIL CIR',
+    'experian-credit-report': 'Fetch Experian Credit Dossier',
+    'crif-credit-score-v4': 'Generate CRIF HighMark Credit Report'
+  };
+  return map[apiId] || `Verify ${defaultName}`;
+}
+
+function getCategoryTheme(category) {
+  switch (category?.toUpperCase()) {
+    case 'BANKING':
+      return {
+        cardBg: 'bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/40 border-blue-200/80',
+        badge: 'text-blue-700 bg-blue-100/70 border-blue-300/80 font-bold',
+        iconBg: 'bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30',
+        accentGlow: 'from-blue-500/15 to-transparent',
+        tagBg: 'bg-blue-50 text-blue-700 border-blue-200/60'
+      };
+    case 'IDENTITY':
+      return {
+        cardBg: 'bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/40 border-emerald-200/80',
+        badge: 'text-emerald-700 bg-emerald-100/70 border-emerald-300/80 font-bold',
+        iconBg: 'bg-gradient-to-tr from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/30',
+        accentGlow: 'from-emerald-500/15 to-transparent',
+        tagBg: 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+      };
+    case 'BUREAU':
+      return {
+        cardBg: 'bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/40 border-indigo-200/80',
+        badge: 'text-indigo-700 bg-indigo-100/70 border-indigo-300/80 font-bold',
+        iconBg: 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/30',
+        accentGlow: 'from-indigo-500/15 to-transparent',
+        tagBg: 'bg-indigo-50 text-indigo-700 border-indigo-200/60'
+      };
+    case 'EMPLOYMENT':
+      return {
+        cardBg: 'bg-gradient-to-br from-amber-50/80 via-white to-orange-50/40 border-amber-200/80',
+        badge: 'text-amber-700 bg-amber-100/70 border-amber-300/80 font-bold',
+        iconBg: 'bg-gradient-to-tr from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/30',
+        accentGlow: 'from-amber-500/15 to-transparent',
+        tagBg: 'bg-amber-50 text-amber-700 border-amber-200/60'
+      };
+    case 'SECURITY':
+    case 'RISK':
+      return {
+        cardBg: 'bg-gradient-to-br from-violet-50/80 via-white to-pink-50/40 border-violet-200/80',
+        badge: 'text-violet-700 bg-violet-100/70 border-violet-300/80 font-bold',
+        iconBg: 'bg-gradient-to-tr from-violet-600 to-pink-600 text-white shadow-md shadow-violet-500/30',
+        accentGlow: 'from-violet-500/15 to-transparent',
+        tagBg: 'bg-violet-50 text-violet-700 border-violet-200/60'
+      };
+    default:
+      return {
+        cardBg: 'bg-gradient-to-br from-blue-50/80 via-white to-slate-50/40 border-blue-200/80',
+        badge: 'text-blue-700 bg-blue-100/70 border-blue-300/80 font-bold',
+        iconBg: 'bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30',
+        accentGlow: 'from-blue-500/15 to-transparent',
+        tagBg: 'bg-blue-50 text-blue-700 border-blue-200/60'
+      };
+  }
+}
+
+const iconMap = {
+  CreditCard,
+  Fingerprint,
+  Briefcase,
+  FileCheck,
+  Landmark,
+  ArrowRightLeft,
+  Smartphone,
+  Globe,
+  MapPin,
+  Shield,
+  TrendingUp
+};
+
 export default function LiveTesterPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlApiId = searchParams.get('api') || 'pan-advance';
 
-  const [selectedApiId, setSelectedApiId] = useState(urlApiId);
-  const [activeCategoryFilter, setActiveCategoryFilter] = useState('ALL'); // 'ALL' | 'IDENTITY' | 'BUREAU'
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // Master Profile State (Persistent in localStorage)
+  // Master candidate profile persisted in localStorage
   const [masterProfile, setMasterProfile] = useState(() => {
     try {
       const saved = localStorage.getItem('lxn_master_profile_v1');
@@ -93,87 +211,64 @@ export default function LiveTesterPage() {
     }
   });
 
-  // User input overrides (empty by default so placeholder shows)
+  // Form execution states
   const [inputParams, setInputParams] = useState({});
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const [recentTests, setRecentTests] = useState([]);
 
   const { addToast } = useToast();
 
-  const iconMap = {
-    CreditCard,
-    Fingerprint,
-    Briefcase,
-    FileCheck,
-    Landmark,
-    ArrowRightLeft,
-    Smartphone,
-    Globe,
-    MapPin,
-    Shield,
-    TrendingUp
-  };
+  // Active API item
+  const selectedApi = useMemo(() => {
+    return ALL_APIS.find(a => a.id === urlApiId) || ALL_APIS[0];
+  }, [urlApiId]);
 
-  // Active API object
-  const selectedApi = ALL_APIS.find(a => a.id === selectedApiId) || ALL_APIS[0];
+  const ActiveIcon = iconMap[selectedApi.icon] || CreditCard;
+  const theme = getCategoryTheme(selectedApi.category);
 
-  // Persist master profile
+  // Sync masterProfile across tabs/windows
   useEffect(() => {
-    try {
-      localStorage.setItem('lxn_master_profile_v1', JSON.stringify(masterProfile));
-    } catch {
-      // Ignore storage errors
-    }
-  }, [masterProfile]);
+    const handleStorage = () => {
+      try {
+        const saved = localStorage.getItem('lxn_master_profile_v1');
+        if (saved) setMasterProfile(JSON.parse(saved));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
-  // Reset inputs to empty on switching API so placeholders show cleanly
+  // Reset inputs when switching selected service
   useEffect(() => {
     if (selectedApi) {
       setInputParams({});
       setResult(null);
       setError('');
     }
-  }, [selectedApiId]);
+  }, [selectedApi?.id]);
 
-  // Handle URL param changes
-  useEffect(() => {
-    if (urlApiId && ALL_APIS.some(a => a.id === urlApiId)) {
-      setSelectedApiId(urlApiId);
+  const handleSaveMasterProfile = (newProfile) => {
+    setMasterProfile(newProfile);
+    try {
+      localStorage.setItem('lxn_master_profile_v1', JSON.stringify(newProfile));
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {
+      console.error(e);
     }
-  }, [urlApiId]);
-
-  const handleSelectApi = (apiId) => {
-    setSelectedApiId(apiId);
-    setSearchParams({ api: apiId });
-  };
-
-  const handleMasterChange = (key, val) => {
-    setMasterProfile(prev => ({ ...prev, [key]: val }));
-  };
-
-  const handleResetMaster = () => {
-    setMasterProfile(DEFAULT_MASTER_PROFILE);
-    setInputParams({});
-    addToast({
-      title: 'Master Profile Reset',
-      message: 'Restored default applicant credentials (SHUBHAM GUPTA).',
-      type: 'info'
-    });
-  };
-
-  const handleClearInputs = () => {
-    setInputParams({});
-    addToast({
-      title: 'Cleared Custom Overrides',
-      message: 'Active form will use default Master Profile placeholders.',
-      type: 'info'
-    });
   };
 
   const handleInputChange = (key, val) => {
+    soundEngine.playKey();
     setInputParams(prev => ({ ...prev, [key]: val }));
+  };
+
+  const handleSelectRelated = (apiId) => {
+    soundEngine.playClick();
+    setSearchParams({ api: apiId });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleExecute = async (e) => {
@@ -182,9 +277,9 @@ export default function LiveTesterPage() {
 
     setError('');
     setLoading(true);
+    soundEngine.playBiometricScan();
 
     try {
-      // Build final payload: Use typed input value if provided, else fall back to derived placeholder
       const payloadToSend = {};
       Object.keys(selectedApi.sampleInput || {}).forEach(k => {
         const userVal = inputParams[k];
@@ -200,24 +295,35 @@ export default function LiveTesterPage() {
       });
 
       setResult(res);
-      setRecentTests(prev => [res, ...prev.filter(p => p.apiId !== res.apiId).slice(0, 4)]);
 
       if (res.success) {
+        soundEngine.playSuccess();
+        try {
+          confetti({
+            particleCount: 45,
+            spread: 65,
+            origin: { y: 0.75 },
+            colors: ['#2563EB', '#10B981', '#38BDF8']
+          });
+        } catch (e) {}
+
         addToast({
-          title: 'Live 200 OK Received',
-          message: `${res.apiName} verified live in ${res.latencyMs}ms.`,
+          title: 'Verification Complete',
+          message: `${res.apiName} verified successfully.`,
           type: 'success'
         });
       } else {
-        setError(res.error || 'Upstream gateway returned an error.');
+        soundEngine.playError();
+        setError(res.error || 'Verification request returned an upstream notice.');
         addToast({
-          title: 'Gateway Alert',
-          message: res.error || 'Upstream error response',
+          title: 'Verification Notice',
+          message: res.error || 'Upstream response alert',
           type: 'warning'
         });
       }
     } catch (err) {
-      setError(err.message || 'Failed to communicate with live gateway.');
+      soundEngine.playError();
+      setError(err.message || 'Failed to complete verification.');
       addToast({
         title: 'Communication Error',
         message: err.message,
@@ -228,427 +334,329 @@ export default function LiveTesterPage() {
     }
   };
 
-  // Filtered APIs list
-  const filteredApis = useMemo(() => {
-    return ALL_APIS.filter(apiItem => {
-      let matchesCategory = true;
-      if (activeCategoryFilter === 'IDENTITY') {
-        matchesCategory = apiItem.category !== 'Credit Bureau';
-      } else if (activeCategoryFilter === 'BUREAU') {
-        matchesCategory = apiItem.category === 'Credit Bureau';
-      }
-      const q = searchQuery.toLowerCase().trim();
-      const matchesSearch = !q || (
-        apiItem.name.toLowerCase().includes(q) ||
-        apiItem.description.toLowerCase().includes(q) ||
-        apiItem.tag.toLowerCase().includes(q) ||
-        apiItem.details.toLowerCase().includes(q)
-      );
-      return matchesCategory && matchesSearch;
-    });
-  }, [activeCategoryFilter, searchQuery]);
-
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-6 pb-16 w-full animate-in fade-in duration-150">
       
-      {/* Top Banner */}
-      <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-slate-900/90 via-[#0B1020]/95 to-slate-900/90 border border-slate-800 shadow-2xl backdrop-blur-2xl flex flex-col md:flex-row md:items-center justify-between gap-5">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-glow-indigo flex-shrink-0">
-              <Zap className="w-5 h-5 fill-white" />
+      {/* =========================================================================
+         TOP COMMAND BAR: Hero Identity + Related Services Switcher
+         ========================================================================= */}
+      <div className={`rounded-2xl p-5 sm:p-6 shadow-xs relative overflow-hidden border ${theme.cardBg}`}>
+        
+        {/* Ambient Gradient Glow */}
+        <div className={`absolute -right-16 -top-16 w-64 h-64 rounded-full bg-gradient-to-br ${theme.accentGlow} blur-2xl pointer-events-none`} />
+
+        {/* Top Service Identity Row */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200/60 relative z-10">
+          <div className="flex items-start gap-3.5 min-w-0">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${theme.iconBg}`}>
+              <ActiveIcon className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Live Gateway Verification Hub
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-              Live Connected
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-400 font-medium mt-1.5 max-w-2xl">
-            Single unified command center for real-time statutory, banking, employment & credit bureau verification.
-          </p>
-        </div>
 
-        {/* Global Stats */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="p-3 px-4 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-inner text-right">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-              Active Endpoints
-            </span>
-            <span className="font-mono text-sm font-extrabold text-white">
-              {ALL_APIS.length} APIs (Bharat Cloud)
-            </span>
-          </div>
-
-          <div className="p-3 px-4 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-inner text-right">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-              Total Package Cost
-            </span>
-            <span className="font-mono text-sm font-extrabold text-emerald-400">
-              ₹ {TOTAL_COST_WITH_GST.toFixed(2)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* MASTER PROFILE CARD (Zero Repeat Inputs) */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-[#0d1527] via-[#091020] to-[#0d1527] border border-indigo-500/40 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl overflow-hidden">
-        {/* Ambient Glow */}
-        <div className="absolute top-0 right-1/4 w-96 h-24 bg-indigo-600/15 blur-3xl pointer-events-none rounded-full"></div>
-        <div className="absolute bottom-0 left-1/4 w-96 h-24 bg-emerald-600/10 blur-3xl pointer-events-none rounded-full"></div>
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shadow-glow-indigo">
-              <UserCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm sm:text-base font-black text-white tracking-tight">
-                  Master Profile State
-                </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-950 text-indigo-300 border border-indigo-500/40">
-                  Zero Repeat Inputs ⚡
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider border shadow-2xs ${theme.badge}`}>
+                  {selectedApi.category}
+                </span>
+                {selectedApi.tag && (
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${theme.tagBg}`}>
+                    {selectedApi.tag}
+                  </span>
+                )}
+                <span className="text-[10px] font-mono text-emerald-800 font-bold bg-emerald-100/80 border border-emerald-300 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Instant Verification</span>
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
-                Set customer credentials once here. All 14 API tests will automatically use these values as placeholders.
+
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 mt-1">
+                {selectedApi.name}
+              </h1>
+
+              <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed max-w-2xl mt-0.5">
+                {selectedApi.description}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleResetMaster}
-              className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset to Defaults</span>
-            </button>
+          {/* Standard Fee Indicator */}
+          <div className="flex lg:flex-col items-center lg:items-end justify-between bg-white/95 backdrop-blur-xs border border-slate-200/80 p-3 lg:px-4 lg:py-2.5 rounded-xl flex-shrink-0 shadow-2xs">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              Standard Service Fee
+            </span>
+            <div className="flex items-baseline gap-1.5 mt-0.5">
+              <span className="text-lg sm:text-2xl font-extrabold text-slate-900 font-mono">
+                ₹ {selectedApi.cost.toFixed(2)}
+              </span>
+              <span className="text-[11px] text-slate-500 font-medium">/ query</span>
+            </div>
           </div>
         </div>
 
-        {/* 4 Core Master Inputs */}
-        <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-4">
-          
-          {/* Full Name */}
-          <div>
-            <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
-              <span>Full Name</span>
-              <span className="text-[9px] text-indigo-400 font-mono">14 APIs</span>
-            </label>
-            <input
-              type="text"
-              value={masterProfile.fullName}
-              onChange={(e) => handleMasterChange('fullName', e.target.value.toUpperCase())}
-              placeholder="e.g. SHUBHAM GUPTA"
-              className="w-full px-3.5 py-2.5 bg-slate-950/90 focus:bg-slate-900 border border-indigo-500/30 focus:border-indigo-500 rounded-xl text-xs font-mono font-bold text-white placeholder-slate-600 focus:outline-none transition-all shadow-inner"
-            />
+        {/* Bottom Row: Related Services Switcher */}
+        {ALL_APIS.filter(a => a.id !== selectedApi.id && a.category === selectedApi.category).length > 0 && (
+          <div className="pt-3.5 flex items-center gap-2 overflow-x-auto scrollbar-none text-xs flex-wrap relative z-10">
+            <span className="text-slate-500 text-[11px] font-bold whitespace-nowrap">Related Services:</span>
+            {ALL_APIS.filter(a => a.id !== selectedApi.id && a.category === selectedApi.category).slice(0, 4).map(rel => (
+              <button
+                key={rel.id}
+                type="button"
+                onClick={() => handleSelectRelated(rel.id)}
+                className="px-2.5 py-1 rounded-lg bg-white/90 hover:bg-blue-50 border border-slate-200/90 hover:border-blue-300 text-slate-700 hover:text-blue-700 font-semibold text-[11px] whitespace-nowrap transition-all shadow-2xs cursor-pointer active:scale-95"
+              >
+                {rel.name.split('(')[0].trim()}
+              </button>
+            ))}
           </div>
+        )}
 
-          {/* Mobile Number */}
-          <div>
-            <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
-              <span>Mobile Number</span>
-              <span className="text-[9px] text-indigo-400 font-mono">10 Digits</span>
-            </label>
-            <input
-              type="text"
-              maxLength={10}
-              value={masterProfile.mobileNumber}
-              onChange={(e) => handleMasterChange('mobileNumber', e.target.value.replace(/\D/g, ''))}
-              placeholder="e.g. 9876543210"
-              className="w-full px-3.5 py-2.5 bg-slate-950/90 focus:bg-slate-900 border border-indigo-500/30 focus:border-indigo-500 rounded-xl text-xs font-mono font-bold text-white placeholder-slate-600 focus:outline-none transition-all shadow-inner"
-            />
-          </div>
-
-          {/* PAN Card Number */}
-          <div>
-            <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
-              <span>PAN Number</span>
-              <span className="text-[9px] text-indigo-400 font-mono">10 AlphaNum</span>
-            </label>
-            <input
-              type="text"
-              maxLength={10}
-              value={masterProfile.panNumber}
-              onChange={(e) => handleMasterChange('panNumber', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-              placeholder="e.g. AAACL7821M"
-              className="w-full px-3.5 py-2.5 bg-slate-950/90 focus:bg-slate-900 border border-indigo-500/30 focus:border-indigo-500 rounded-xl text-xs font-mono font-bold text-white placeholder-slate-600 focus:outline-none transition-all shadow-inner"
-            />
-          </div>
-
-          {/* Aadhaar Number */}
-          <div>
-            <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
-              <span>Aadhaar Number</span>
-              <span className="text-[9px] text-indigo-400 font-mono">12 Digits</span>
-            </label>
-            <input
-              type="text"
-              maxLength={12}
-              value={masterProfile.aadhaarNumber}
-              onChange={(e) => handleMasterChange('aadhaarNumber', e.target.value.replace(/\D/g, ''))}
-              placeholder="e.g. 984512348921"
-              className="w-full px-3.5 py-2.5 bg-slate-950/90 focus:bg-slate-900 border border-indigo-500/30 focus:border-indigo-500 rounded-xl text-xs font-mono font-bold text-white placeholder-slate-600 focus:outline-none transition-all shadow-inner"
-            />
-          </div>
-
-        </div>
       </div>
 
-      {/* Main Single Workspace Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      {/* =========================================================================
+         DUAL-PANE COMMAND CONSOLE (Left: Form Controller | Right: Live Certified Dossier)
+         ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start w-full min-w-0">
         
-        {/* Left Column: 14-API Selector & Gateway Filter (4 Cols - Sticky) */}
-        <div className="lg:col-span-4 sticky top-4 self-start bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl backdrop-blur-xl space-y-3.5">
+        {/* =======================================================================
+           LEFT COLUMN: Verification Controller & Interactive Inputs (5 of 12 cols)
+           ======================================================================= */}
+        <div className="lg:col-span-5 space-y-4 w-full min-w-0">
           
-          {/* Search & Filter Header */}
-          <div className="space-y-2.5">
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search 14 APIs (pan, uan, cibil)..."
-                className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition-all shadow-inner"
-              />
-            </div>
-
-            {/* Gateway Filter Tabs */}
-            <div className="grid grid-cols-3 gap-1 p-1 bg-slate-950 rounded-xl border border-slate-800 text-[10px] font-bold">
-              <button
-                type="button"
-                onClick={() => setActiveCategoryFilter('ALL')}
-                className={`py-1 rounded-lg transition-all text-center ${
-                  activeCategoryFilter === 'ALL'
-                    ? 'bg-indigo-600 text-white shadow-glow-indigo'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                All ({ALL_APIS.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveCategoryFilter('IDENTITY')}
-                className={`py-1 rounded-lg transition-all text-center ${
-                  activeCategoryFilter === 'IDENTITY'
-                    ? 'bg-indigo-600 text-white shadow-glow-indigo'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Identity (11)
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveCategoryFilter('BUREAU')}
-                className={`py-1 rounded-lg transition-all text-center ${
-                  activeCategoryFilter === 'BUREAU'
-                    ? 'bg-indigo-600 text-white shadow-glow-indigo'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Bureau (3)
-              </button>
-            </div>
-          </div>
-
-          {/* 14 API List Items */}
-          <div className="space-y-1.5 max-h-[calc(100vh-14rem)] overflow-y-auto pr-1">
-            {filteredApis.map((apiItem) => {
-              const isSelected = apiItem.id === selectedApiId;
-              const IconComponent = iconMap[apiItem.icon] || Layers;
-
-              return (
-                <button
-                  key={apiItem.id}
-                  onClick={() => handleSelectApi(apiItem.id)}
-                  className={`w-full p-2.5 rounded-xl text-left border transition-all flex items-center justify-between gap-2.5 group ${
-                    isSelected
-                      ? 'bg-indigo-950/80 border-indigo-500 shadow-glow-indigo ring-1 ring-indigo-500/50'
-                      : 'bg-slate-950/60 hover:bg-slate-900/80 border-slate-800/80 hover:border-slate-700 text-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-mono font-bold flex-shrink-0 border ${
-                      isSelected
-                        ? 'bg-indigo-600 border-indigo-400 text-white shadow-glow-indigo'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 group-hover:text-white'
-                    }`}>
-                      #{apiItem.num < 10 ? `0${apiItem.num}` : apiItem.num}
-                    </div>
-
-                    <div className="min-w-0">
-                      <span className={`text-[11px] font-bold block truncate ${
-                        isSelected ? 'text-white' : 'text-slate-200 group-hover:text-indigo-300'
-                      }`}>
-                        {apiItem.name}
-                      </span>
-                      <span className="text-[9px] text-slate-500 block truncate font-mono">
-                        {apiItem.tag}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="text-right flex-shrink-0">
-                    <span className="text-[11px] font-extrabold font-mono text-emerald-400 block">
-                      ₹ {apiItem.cost.toFixed(2)}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Right Column: Execution Form & Real-time Visual Output (8 Cols) */}
-        <div className="lg:col-span-8 space-y-5">
-          
-          {/* Selected API Execution Box */}
-          {selectedApi && (
-            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl backdrop-blur-xl space-y-4">
+          <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
+            
+            {/* Top Accent Gradient Bar */}
+            <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-teal-400" />
+            
+            <div className="p-5 sm:p-6 space-y-5">
               
-              {/* Endpoint Header Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2 py-0.5 rounded-md font-mono text-[10px] font-extrabold bg-indigo-950 text-indigo-300 border border-indigo-500/30 uppercase">
-                      {selectedApi.details.split('•')[0] || 'POST'}
-                    </span>
-                    <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
-                      {selectedApi.name}
-                    </h2>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-0.5 font-medium leading-relaxed">
-                    {selectedApi.description}
-                  </p>
-                </div>
-
-                <div className="text-right flex-shrink-0">
-                  <span className="text-[10px] font-bold text-slate-500 block uppercase">Price</span>
-                  <span className="font-mono text-sm font-extrabold text-emerald-400">
-                    ₹ {selectedApi.cost.toFixed(2)} <span className="text-[10px] text-slate-500">incl. GST</span>
-                  </span>
-                </div>
+              {/* Form Header */}
+              <div className="pb-3 border-b border-slate-100">
+                <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  Verification Parameters
+                </h2>
+                <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                  Enter required attributes to execute live statutory verification.
+                </p>
               </div>
 
-              {/* Dynamic Form Inputs */}
-              <div>
-                <div className="flex items-center justify-between mb-2.5">
-                  <label className="block text-xs font-extrabold text-slate-300 uppercase tracking-wider">
-                    Query Input Parameters
-                  </label>
-                  <div className="flex items-center gap-3 text-[11px] font-bold">
-                    <button
-                      type="button"
-                      onClick={handleClearInputs}
-                      className="text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
-                    >
-                      <RotateCcw className="w-3 h-3" />
-                      <span>Use Placeholders</span>
-                    </button>
+            {/* Form Fields */}
+            <form onSubmit={handleExecute} className="space-y-4">
+              {Object.keys(selectedApi.sampleInput || {}).map((k) => {
+                const userVal = inputParams[k] ?? '';
+                const label = getHumanFieldLabel(k);
+
+                return (
+                  <div key={k} className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700">
+                        {label}
+                      </label>
+                    </div>
+
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={userVal}
+                        onChange={(e) => handleInputChange(k, e.target.value)}
+                        placeholder={`Enter ${label}...`}
+                        className="w-full pl-3.5 pr-8 py-2.5 bg-slate-50 focus:bg-white border border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-500/15 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none transition-all font-mono shadow-2xs"
+                      />
+                      {userVal && (
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange(k, '')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition-colors"
+                          title="Clear field"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
+                );
+              })}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {Object.keys(selectedApi.sampleInput || {}).map((k) => {
-                    const placeholderVal = getDerivedPlaceholder(selectedApi, k, masterProfile);
-                    const userVal = inputParams[k] ?? '';
-
-                    return (
-                      <div key={k} className={Object.keys(selectedApi.sampleInput).length === 1 ? 'sm:col-span-2' : ''}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[11px] font-bold text-slate-300 capitalize font-mono">
-                            {k.replace(/_/g, ' ')}
-                          </span>
-                          <span className="text-[10px] font-mono text-indigo-400 bg-indigo-950/70 px-1.5 py-0.5 rounded border border-indigo-500/30">
-                            {k}
-                          </span>
-                        </div>
-                        <input
-                          type="text"
-                          value={userVal}
-                          onChange={(e) => handleInputChange(k, e.target.value)}
-                          placeholder={placeholderVal ? `e.g. ${placeholderVal}` : `Enter ${k}...`}
-                          className="w-full px-3.5 py-2.5 bg-slate-950 focus:bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs font-mono font-bold text-white placeholder-slate-500 focus:outline-none transition-all shadow-inner"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Auto-Injected Constants Banner */}
-                {selectedApi.fixedRules && (
-                  <div className="mt-3 p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 flex items-center gap-2">
-                    <Info className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
-                    <span>
-                      <strong className="text-slate-300">Auto-Injected Backend Constants:</strong> {selectedApi.fixedRules}
-                    </span>
-                  </div>
+              {/* Error Message */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2.5"
+                  >
+                    <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                    <span className="leading-snug">{error}</span>
+                  </motion.div>
                 )}
-              </div>
+              </AnimatePresence>
 
-              {error && (
-                <div className="p-3.5 rounded-xl bg-red-950/40 border border-red-800/80 text-xs text-red-300 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-400" />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              {/* Submit Button */}
-              <div>
-                <button
-                  type="button"
-                  onClick={handleExecute}
+              {/* Execution Action Button */}
+              <div className="pt-2">
+                <motion.button
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.985 }}
+                  type="submit"
                   disabled={loading}
-                  className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-[0.98] text-white font-extrabold text-sm shadow-glow-indigo flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-brand-600 via-blue-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 active:scale-[0.985] text-white font-bold text-xs shadow-md shadow-brand-500/20 hover:shadow-lg hover:shadow-brand-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {loading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Dispatching to Bharat Cloud Gateway...</span>
+                      <span>Verifying with Upstream Gateway...</span>
                     </>
                   ) : (
                     <>
-                      <Play className="w-4 h-4 fill-white" />
-                      <span>Execute Live API Test (Bharat Cloud)</span>
+                      <span>{getCtaButtonLabel(selectedApi.id, selectedApi.name)}</span>
+                      <ArrowRight className="w-4 h-4" />
                     </>
                   )}
-                </button>
+                </motion.button>
               </div>
+            </form>
+
             </div>
-          )}
+          </div>
 
-          {/* Real-time Visual 3D Holographic Card & Raw JSON Viewer */}
-          <div>
-            <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider block mb-3">
-              Live Gateway Statutory Output
-            </span>
-
-            {result ? (
-              <Visual3DCard result={result} />
-            ) : (
-              <div className="p-10 sm:p-14 border-2 border-dashed border-slate-800/80 rounded-3xl text-center bg-slate-900/40 backdrop-blur-xl">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto mb-3.5 shadow-glow-indigo">
-                  <Play className="w-6 h-6 fill-indigo-400 ml-0.5" />
-                </div>
-                <h3 className="font-extrabold text-white text-base sm:text-lg">
-                  {selectedApi ? `${selectedApi.name} Ready` : 'Select an API'}
-                </h3>
-                <p className="text-xs text-slate-400 mt-1.5 max-w-md mx-auto leading-relaxed">
-                  Click <strong>"Execute Live API Test"</strong> to send the query live to Bharat Cloud and inspect the real statutory verification response.
-                </p>
-              </div>
-            )}
+          {/* Quick Security Assurance Card */}
+          <div className="p-4 bg-emerald-50/40 border border-emerald-200/60 rounded-2xl flex items-center gap-3 text-xs text-slate-600">
+            <ShieldCheck className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+            <div className="leading-tight">
+              <span className="font-bold text-slate-900 block">End-to-End Cryptographic Security</span>
+              <span className="text-[11px] text-slate-500 block mt-0.5">
+                All requests signed with 256-bit TLS encryption against central authorities.
+              </span>
+            </div>
           </div>
 
         </div>
 
+        {/* =======================================================================
+           RIGHT COLUMN: Live Certified Dossier Canvas (7 of 12 cols)
+           ======================================================================= */}
+        <div className="lg:col-span-7 w-full min-w-0">
+          
+          <AnimatePresence mode="wait">
+            
+            {/* State 1: Active Loading Progress Radar */}
+            {loading ? (
+              <motion.div
+                key="state-loading"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 shadow-sm text-center space-y-6"
+              >
+                {/* Cryptographic Radar Animation */}
+                <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border-4 border-brand-100 border-t-brand-600 animate-spin"></div>
+                  <div className="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center text-brand-600">
+                    <ActiveIcon className="w-6 h-6 animate-pulse" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 max-w-sm mx-auto">
+                  <h3 className="font-bold text-navy-900 text-base">
+                    Executing Real-Time Verification
+                  </h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Connecting to {selectedApi.tag || 'Central Authority Database'} and validating digital record signatures.
+                  </p>
+                </div>
+
+                {/* Progressive Verification Steps */}
+                <div className="max-w-xs mx-auto space-y-2 text-left text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="flex items-center gap-2 text-emerald-700 font-semibold">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <span>Payload Sanitized & Signed</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-brand-700 font-semibold">
+                    <div className="w-3.5 h-3.5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                    <span>Querying Upstream Authority...</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-400 font-medium">
+                    <Clock className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                    <span>Formatting Certified Report</span>
+                  </div>
+                </div>
+              </motion.div>
+            ) : result ? (
+              /* State 2: Real Verification Dossier Output */
+              <motion.div
+                key="state-result"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-2"
+              >
+                <div className="flex items-center justify-between px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span>Certified Verification Dossier</span>
+                  <span className="text-emerald-700 font-bold font-mono">● LIVE RECORD VERIFIED</span>
+                </div>
+                <Visual3DCard result={result} />
+              </motion.div>
+            ) : (
+              /* State 3: Interactive Idle Security Blueprint Preview */
+              <motion.div
+                key="state-idle"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="bg-gradient-to-b from-white via-blue-50/20 to-indigo-50/30 border border-blue-200/70 rounded-2xl p-7 sm:p-9 shadow-xs space-y-6 text-center relative overflow-hidden"
+              >
+                {/* Subtle radiant background aura */}
+                <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-blue-400/10 blur-2xl pointer-events-none" />
+
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-blue-500 to-indigo-600 text-white flex items-center justify-center mx-auto shadow-md shadow-blue-500/25 relative z-10">
+                  <Shield className="w-7 h-7" />
+                </div>
+
+                <div className="space-y-1 max-w-md mx-auto relative z-10">
+                  <h3 className="font-extrabold text-slate-900 text-base">
+                    Verification Blueprint Active
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Select a preset or complete the parameters on the left to execute live statutory verification and generate certified records.
+                  </p>
+                </div>
+
+                {/* Verification Scope Checklist */}
+                <div className="max-w-md mx-auto p-4 rounded-xl bg-white/95 border border-blue-100 shadow-2xs text-left space-y-2.5 text-xs relative z-10">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Certified Attributes Verified by this Service:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-800 font-semibold">
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50/70 border border-emerald-200/60 shadow-2xs">
+                      <Check className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                      <span>Legal Identity Matching</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50/70 border border-blue-200/60 shadow-2xs">
+                      <Check className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                      <span>Central Database Status</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-indigo-50/70 border border-indigo-200/60 shadow-2xs">
+                      <Check className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0" />
+                      <span>Cryptographic Audit Ref</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-violet-50/70 border border-violet-200/60 shadow-2xs">
+                      <Check className="w-3.5 h-3.5 text-violet-600 flex-shrink-0" />
+                      <span>Regulatory Compliance</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-slate-500 font-medium relative z-10">
+                  Press <kbd className="px-1.5 py-0.5 bg-white border border-slate-200 rounded font-mono text-[10px] text-slate-700 font-bold shadow-2xs">↵ Enter</kbd> on any input to run verification.
+                </div>
+              </motion.div>
+            )}
+
+          </AnimatePresence>
+
+        </div>
+
       </div>
+
     </div>
   );
 }

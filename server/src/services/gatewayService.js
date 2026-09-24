@@ -64,19 +64,18 @@ async function callGatewayPost(url, payload, timeoutMs = 25000) {
 }
 
 export const gatewayService = {
-  // 1. PAN Card Verification (Fuzzy Name Match)
-  // Route: /srv2/validation/pan
+  // 1. PAN Card Verification (Plus)
+  // Route: /srv2/validation/pan/plus
   async verifyPan(params = {}) {
     const creds = getBharatCloudCreds();
-    const url = `${creds.baseUrl}/srv2/validation/pan`;
+    const url = `${creds.baseUrl}/srv2/validation/pan/plus`;
+    const panVal = (params.pan || params.pan_number || params.panNumber || '').toUpperCase().trim();
     const payload = {
       api_id: creds.api_id,
       api_key: creds.api_key,
       token_id: creds.token_id,
-      pan: (params.pan || params.panNumber || '').toUpperCase().trim(),
-      name: (params.name || '').trim(),
-      pan_display_name: String(params.pan_display_name ?? 'true'),
-      name_match_method: params.name_match_method || 'fuzzy'
+      pan: panVal,
+      pan_number: panVal
     };
     return await callGatewayPost(url, payload);
   },
@@ -113,7 +112,26 @@ export const gatewayService = {
     return await callGatewayPost(url, payload);
   },
 
-  // 4. Bank Account Verification (Penny-less / Active Check)
+  // 4. Aadhaar Fetch - Without OTP
+  // Route: /srv3/verification/aadhar
+  async fetchAadhaarWithoutOtp(params = {}) {
+    const creds = getBharatCloudCreds();
+    const url = `${creds.baseUrl}/srv3/verification/aadhar`;
+    const aadhaarVal = (params.aadhaar_number || params.aadhar_number || params.aadhaar || params.aadhar || params.aadhaarNumber || '').replace(/\D/g, '').slice(-12);
+    const nameVal = (params.full_name || params.name || params.fullName || params.first_name || '').trim();
+    const payload = {
+      api_id: creds.api_id,
+      api_key: creds.api_key,
+      token_id: creds.token_id,
+      aadhaar_number: aadhaarVal,
+      aadhar_number: aadhaarVal,
+      aadhaar: aadhaarVal,
+      ...(nameVal ? { name: nameVal, full_name: nameVal } : {})
+    };
+    return await callGatewayPost(url, payload, 25000);
+  },
+
+  // 5. Bank Account Verification (Penny-less / Active Check)
   // Route: /api/v1/validate_bank_account
   async verifyBankAccount(params = {}) {
     const creds = getBharatCloudCreds();
@@ -128,7 +146,7 @@ export const gatewayService = {
     return await callGatewayPost(url, payload);
   },
 
-  // 5. Bank IFSC Code Lookup
+  // 6. Bank IFSC Code Lookup
   // Route: /bank/ifsc
   async lookupIfsc(params = {}) {
     const creds = getBharatCloudCreds();
@@ -142,7 +160,41 @@ export const gatewayService = {
     return await callGatewayPost(url, payload);
   },
 
-  // 6. EPFO / UAN Lookup (via Mobile Number)
+  // 7. Mobile To Bank Advance (Live Account Linkage)
+  // Route: /srv3/mobile-to-bank/advance
+  async mobileToBankAdvance(params = {}) {
+    const creds = getBharatCloudCreds();
+    const url = `${creds.baseUrl}/srv3/mobile-to-bank/advance`;
+    const mobileVal = (params.mobile || params.mobile_number || params.mobileNumber || params.phone || '').replace(/\D/g, '').slice(-10);
+    const payload = {
+      api_id: creds.api_id,
+      api_key: creds.api_key,
+      token_id: creds.token_id,
+      mobile: mobileVal,
+      mobile_number: mobileVal,
+      user_consent: 'Y',
+      consent: 'Y'
+    };
+    return await callGatewayPost(url, payload, 30000);
+  },
+
+  // 8. Mobile To UPI Lookup Enhanced (Live NPCI Directory Lookup)
+  // Route: /srv2/mobile-upi-lookup/enhanced
+  async mobileUpiLookupEnhanced(params = {}) {
+    const creds = getBharatCloudCreds();
+    const url = `${creds.baseUrl}/srv2/mobile-upi-lookup/enhanced`;
+    const mobileVal = (params.mobile || params.mobile_number || params.mobileNumber || params.phone || '').replace(/\D/g, '').slice(-10);
+    const payload = {
+      api_id: creds.api_id,
+      api_key: creds.api_key,
+      token_id: creds.token_id,
+      mobile: mobileVal,
+      mobile_number: mobileVal
+    };
+    return await callGatewayPost(url, payload, 30000);
+  },
+
+  // 9. EPFO / UAN Lookup (via Mobile Number)
   // Route: /srv3/uan-mobile
   async lookupUanByMobile(params = {}) {
     const creds = getBharatCloudCreds();

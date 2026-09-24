@@ -38,20 +38,43 @@ export async function executeApiTest(apiId, rawInputParams = {}, req = null) {
       liveResult = await gatewayService.fetchDigiLockerDetails(inputParams);
       break;
 
-    // 4. Bank Account Verification
+    // 4. Aadhaar Fetch - Without OTP
+    case 'aadhaar-fetch-without-otp':
+    case 'aadhaar-without-otp':
+    case 'aadhar-fetch-without-otp':
+    case 'aadhar-without-otp':
+      liveResult = await gatewayService.fetchAadhaarWithoutOtp(inputParams);
+      break;
+
+    // 5. Bank Account Verification
     case 'bank-account-verification':
     case 'bank-account':
       liveResult = await gatewayService.verifyBankAccount(inputParams);
       break;
 
-    // 5. Bank IFSC Code Lookup
+    // 6. Bank IFSC Code Lookup
     case 'bank-ifsc-lookup':
     case 'ifsc-lookup':
     case 'ifsc':
       liveResult = await gatewayService.lookupIfsc(inputParams);
       break;
 
-    // 6. EPFO / UAN Mobile Lookup
+    // 7. Mobile To Bank Advance (Live Account Linkage)
+    case 'mobile-to-bank-advance':
+    case 'mobile-to-bank':
+    case 'mobile-bank-advance':
+      liveResult = await gatewayService.mobileToBankAdvance(inputParams);
+      break;
+
+    // 8. Mobile To UPI Lookup Enhanced (Live NPCI Directory Lookup)
+    case 'mobile-upi-lookup-enhanced':
+    case 'mobile-upi-lookup':
+    case 'mobile-upi-enhanced':
+    case 'upi-lookup':
+      liveResult = await gatewayService.mobileUpiLookupEnhanced(inputParams);
+      break;
+
+    // 9. EPFO / UAN Mobile Lookup
     case 'uan-lookup-mobile':
     case 'uan-mobile':
       liveResult = await gatewayService.lookupUanByMobile(inputParams);
@@ -233,6 +256,11 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       const requestId = getVal(rawData, 'request_id', 'requestId');
       const rawStatus = getVal(rawData, 'status', 'pan_status');
 
+      const allotmentDate = getVal(rawData, 'pan_allotment_date', 'allotment_date');
+      const isDirector = getVal(rawData, 'is_director');
+      const isSoleProprietor = getVal(rawData, 'is_sole_proprietor');
+      const isSalaried = getVal(rawData, 'is_salaried');
+
       return {
         cardType: 'PAN_CARD',
         pan: panNum || null,
@@ -247,6 +275,10 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         aadhaarLinked: isAadhaarLinked,
         aadhaarNumber: aadhaarNumber || null,
         aadhaarSeedingStatus: aadhaarSeeding || (isAadhaarLinked === true ? 'Y' : null),
+        allotmentDate: allotmentDate || null,
+        isDirector: isDirector ? (isDirector === 'Y' || isDirector === 'true' || isDirector === true ? 'Yes' : 'No') : null,
+        isSoleProprietor: isSoleProprietor ? (isSoleProprietor === 'Y' || isSoleProprietor === 'true' || isSoleProprietor === true ? 'Yes' : 'No') : null,
+        isSalaried: isSalaried ? (isSalaried === 'Y' || isSalaried === 'true' || isSalaried === true ? 'Yes' : 'No') : null,
         matchScore,
         address: formattedAddress,
         mobile: mobile || null,
@@ -336,7 +368,83 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       };
     }
 
-    // 4. Bank Account Verification
+    // 4. Aadhaar Fetch - Without OTP
+    case 'aadhaar-fetch-without-otp':
+    case 'aadhaar-without-otp':
+    case 'aadhar-fetch-without-otp':
+    case 'aadhar-without-otp': {
+      const xmlData = rawData?.data?.aadhaar_xml_data || rawData?.aadhaar_xml_data || rawData?.data || rawData?.result || rawData?.response || {};
+      const metadata = rawData?.data?.digilocker_metadata || rawData?.digilocker_metadata || {};
+
+      const rawAadhaar = getVal(rawData, 'aadhaar_number', 'aadhar_number', 'aadhaar', 'aadhar', 'masked_aadhaar') || xmlData.masked_aadhaar || xmlData.aadhaar_number || inputParams.aadhaar_number || '';
+      const cleanAadhaar = String(rawAadhaar).replace(/\D/g, '');
+      const masked = cleanAadhaar.length === 12
+        ? `${cleanAadhaar.slice(0, 4)} ${cleanAadhaar.slice(4, 8)} ${cleanAadhaar.slice(8, 12)}`
+        : (cleanAadhaar.length > 4 ? `XXXX XXXX ${cleanAadhaar.slice(-4)}` : (rawAadhaar || null));
+
+      const name = getVal(rawData, 'full_name', 'name', 'fullname', 'registered_name') || xmlData.full_name || xmlData.name || metadata.name || inputParams.full_name;
+      const careOf = getVal(rawData, 'care_of', 'father_name', 'fathername', 'husband_name', 'co') || xmlData.care_of || xmlData.father_name;
+      const dob = getVal(rawData, 'dob', 'date_of_birth', 'birth_date') || xmlData.dob || metadata.dob;
+      const gender = getVal(rawData, 'gender', 'sex') || xmlData.gender || metadata.gender;
+      const zip = getVal(rawData, 'zip', 'pincode', 'postal_code', 'pin') || xmlData.zip || xmlData.pincode;
+      
+      let fullAddress = getVal(rawData, 'full_address', 'address', 'display_name') || xmlData.full_address || xmlData.address;
+      if (typeof fullAddress === 'object' && fullAddress !== null) {
+        const parts = [
+          fullAddress.house || fullAddress.line1,
+          fullAddress.street || fullAddress.line2,
+          fullAddress.landmark,
+          fullAddress.locality || fullAddress.loc,
+          fullAddress.vtc || fullAddress.city,
+          fullAddress.district || fullAddress.dist,
+          fullAddress.state,
+          fullAddress.pincode || fullAddress.zip
+        ].filter(Boolean);
+        fullAddress = parts.join(', ');
+      }
+
+      const firstName = getVal(rawData, 'first_name');
+      const middleName = getVal(rawData, 'middle_name');
+      const lastName = getVal(rawData, 'last_name');
+      const city = getVal(rawData, 'city');
+      const country = getVal(rawData, 'country') || 'India';
+      const statusCode = rawData?.status?.code || 200;
+      const statusType = rawData?.status?.type || 'success';
+      const statusMessage = rawData?.status?.message || rawData?.message || (isSuccess ? 'Verified' : 'Pending');
+
+      return {
+        cardType: 'AADHAAR_CARD',
+        aadhaarMasked: masked,
+        aadhaarNumber: rawAadhaar || inputParams.aadhaar_number || null,
+        nameEnglish: name ? String(name).toUpperCase() : null,
+        firstName: firstName ? String(firstName).toUpperCase() : null,
+        middleName: middleName ? String(middleName).toUpperCase() : null,
+        lastName: lastName ? String(lastName).toUpperCase() : null,
+        careOf: careOf ? String(careOf).toUpperCase() : null,
+        dob: dob || null,
+        gender: gender === 'M' || String(gender).toLowerCase() === 'male' ? 'MALE' : gender === 'F' || String(gender).toLowerCase() === 'female' ? 'FEMALE' : (gender ? String(gender).toUpperCase() : null),
+        zip: zip || null,
+        address: fullAddress || null,
+        house: house || null,
+        street: street || null,
+        landmark: landmark || null,
+        locality: locality || null,
+        vtc: vtc || null,
+        city: city || null,
+        district: district || null,
+        state: state || null,
+        country: country || null,
+        photo: photo || null,
+        linkedPan: getVal(rawData, 'pan', 'pan_number', 'panNumber') || null,
+        statusCode,
+        statusType,
+        statusMessage,
+        status: statusMessage ? String(statusMessage).toUpperCase() : (isSuccess ? 'VERIFIED' : 'PENDING'),
+        issuer: 'UNIQUE IDENTIFICATION AUTHORITY OF INDIA (UIDAI)'
+      };
+    }
+
+    // 5. Bank Account Verification
     case 'bank-account-verification': {
       const accNum = getVal(rawData, 'account_number', 'accountNumber', 'acc_no') || inputParams.account_number || '';
       const maskedAcc = accNum.length > 4 ? `${accNum.slice(0, 4)} •••• •••• ${accNum.slice(-4)}` : accNum;
@@ -412,7 +520,120 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
       };
     }
 
-    // 6. EPFO / UAN Mobile Lookup
+    // 7. Mobile To Bank Advance (Live Account Linkage)
+    case 'mobile-to-bank-advance':
+    case 'mobile-to-bank':
+    case 'mobile-bank-advance': {
+      const bankData = rawData?.data?.bank_account_data || rawData?.bank_account_data || rawData?.data || {};
+      const ifscMeta = rawData?.data?._x?.ifsc || rawData?._x?.ifsc || {};
+
+      const beneficiaryName = bankData.name || getVal(rawData, 'name', 'beneficiary_name', 'full_name');
+      const accountNumber = bankData.account_number || getVal(rawData, 'account_number', 'acc_no');
+      const ifsc = bankData.ifsc || ifscMeta.IFSC || getVal(rawData, 'ifsc', 'ifsc_code');
+      const utr = bankData.utr || getVal(rawData, 'utr', 'rrn', 'reference_id');
+      const upi = bankData.upi || getVal(rawData, 'upi', 'vpa');
+      
+      const bankName = ifscMeta.BANK || getVal(rawData, 'bank', 'bank_name', 'BANK');
+      const branch = ifscMeta.BRANCH || getVal(rawData, 'branch', 'branch_name', 'BRANCH');
+      const address = ifscMeta.ADDRESS || getVal(rawData, 'address', 'ADDRESS');
+      const micr = ifscMeta.MICR || getVal(rawData, 'micr', 'MICR');
+      const city = ifscMeta.CITY || getVal(rawData, 'city', 'CITY');
+      const district = ifscMeta.DISTRICT || getVal(rawData, 'district', 'DISTRICT');
+      const state = ifscMeta.STATE || getVal(rawData, 'state', 'STATE');
+      const contact = ifscMeta.CONTACT || getVal(rawData, 'contact', 'CONTACT');
+      
+      const neft = ifscMeta.NEFT ?? true;
+      const rtgs = ifscMeta.RTGS ?? true;
+      const imps = ifscMeta.IMPS ?? true;
+      const upiEnabled = ifscMeta.UPI ?? true;
+
+      const queriedMobile = inputParams.mobile || inputParams.mobile_number || getVal(rawData, 'mobile', 'mobile_number');
+      const clientRefNum = rawData?.client_ref_num || getVal(rawData, 'client_ref_num', 'clientRefNum');
+      const requestId = rawData?.request_id || getVal(rawData, 'request_id', 'requestId');
+      const resultCode = rawData?.result_code || getVal(rawData, 'result_code');
+      
+      const statusCode = rawData?.status?.code || rawData?.http_response_code || 200;
+      const statusMessage = rawData?.status?.message || rawData?.message || (isSuccess ? 'Details fetched successfully.' : 'Pending');
+
+      return {
+        cardType: 'MOBILE_TO_BANK_CARD',
+        beneficiaryName: beneficiaryName ? String(beneficiaryName).trim().toUpperCase() : null,
+        accountNumber: accountNumber ? String(accountNumber).trim() : null,
+        ifsc: ifsc ? String(ifsc).trim().toUpperCase() : null,
+        bankName: bankName ? String(bankName).trim() : null,
+        branch: branch ? String(branch).trim() : null,
+        address: address ? String(address).trim() : null,
+        micr: micr ? String(micr).trim() : null,
+        city: city ? String(city).trim() : null,
+        district: district ? String(district).trim() : null,
+        state: state ? String(state).trim() : null,
+        contact: contact ? String(contact).trim() : null,
+        utr: utr ? String(utr).trim() : null,
+        upi: upi ? String(upi).trim() : null,
+        queriedMobile: queriedMobile ? String(queriedMobile).trim() : null,
+        clientRefNum: clientRefNum || null,
+        requestId: requestId || null,
+        resultCode: resultCode || null,
+        neft,
+        rtgs,
+        imps,
+        upiEnabled,
+        statusCode,
+        statusMessage,
+        status: isSuccess ? 'VERIFIED - BANK LINKED' : 'UNVERIFIED',
+        issuer: 'NATIONAL PAYMENTS CORPORATION OF INDIA • BHARAT CLOUD'
+      };
+    }
+
+    // 8. Mobile To UPI Lookup Enhanced (Live NPCI Directory Lookup)
+    case 'mobile-upi-lookup-enhanced':
+    case 'mobile-upi-lookup':
+    case 'mobile-upi-enhanced':
+    case 'upi-lookup': {
+      const resObj = rawData?.result || rawData?.data || rawData || {};
+      const mobileLinkedName = resObj.mobile_linked_name || getVal(rawData, 'mobile_linked_name', 'name', 'account_holder_name', 'full_name');
+      const vpa = resObj.vpa || getVal(rawData, 'vpa', 'upi_id', 'upi');
+      const queriedMobile = inputParams.mobile || inputParams.mobile_number || getVal(rawData, 'mobile', 'mobile_number');
+      const clientRefNum = rawData?.client_ref_num || getVal(rawData, 'client_ref_num', 'clientRefNum');
+      const requestId = rawData?.request_id || getVal(rawData, 'request_id', 'requestId');
+      const resultCode = rawData?.result_code || getVal(rawData, 'result_code');
+      const statusCode = rawData?.http_response_code || rawData?.status?.code || 200;
+      const statusMessage = rawData?.status?.message || rawData?.message || (isSuccess ? 'Live UPI handle verified' : 'Pending');
+
+      const lowerVpa = String(vpa || '').toLowerCase();
+      let pspProvider = 'NPCI UPI Network';
+      if (lowerVpa.includes('@ybl') || lowerVpa.includes('@ibl') || lowerVpa.includes('@axl')) pspProvider = 'PhonePe / NPCI';
+      else if (lowerVpa.includes('@okhdfcbank') || lowerVpa.includes('@okaxis') || lowerVpa.includes('@oksbi') || lowerVpa.includes('@okicici')) pspProvider = 'Google Pay (GPay)';
+      else if (lowerVpa.includes('@paytm') || lowerVpa.includes('@ptyes') || lowerVpa.includes('@ptaxis')) pspProvider = 'Paytm Payments';
+      else if (lowerVpa.includes('@apl') || lowerVpa.includes('@rapl')) pspProvider = 'Amazon Pay';
+      else if (lowerVpa.includes('@icici')) pspProvider = 'iMobile Pay / ICICI';
+      else if (lowerVpa.includes('@postbank')) pspProvider = 'IPPB (India Post)';
+      else if (lowerVpa.includes('@upi') || lowerVpa.includes('@npci')) pspProvider = 'BHIM UPI / NPCI';
+      else if (lowerVpa.includes('@sbi')) pspProvider = 'State Bank of India';
+      else if (lowerVpa.includes('@barodampay')) pspProvider = 'Bank of Baroda';
+      else if (lowerVpa.includes('@kotak') || lowerVpa.includes('@kmbl')) pspProvider = 'Kotak Mahindra Bank';
+      else if (lowerVpa.includes('@indus')) pspProvider = 'IndusInd Bank';
+      else if (lowerVpa.includes('@axisbank')) pspProvider = 'Axis Bank';
+      else if (lowerVpa.includes('@federal')) pspProvider = 'Federal Bank';
+
+      return {
+        cardType: 'UPI_LOOKUP_CARD',
+        name: mobileLinkedName ? String(mobileLinkedName).trim().toUpperCase() : null,
+        vpa: vpa ? String(vpa).trim() : null,
+        mobile: queriedMobile ? String(queriedMobile).trim() : null,
+        mobileFormatted: queriedMobile ? '+91 ' + String(queriedMobile).replace(/\D/g, '').slice(-10) : null,
+        pspProvider,
+        clientRefNum: clientRefNum || null,
+        requestId: requestId || null,
+        resultCode: resultCode || null,
+        statusCode,
+        statusMessage,
+        status: (isSuccess && (vpa || mobileLinkedName)) ? 'VERIFIED - ACTIVE VPA' : (isSuccess ? 'NO VPA LINKED' : 'UNVERIFIED'),
+        issuer: 'NATIONAL PAYMENTS CORPORATION OF INDIA (NPCI)'
+      };
+    }
+
+    // 9. EPFO / UAN Mobile Lookup
     case 'uan-lookup-mobile': {
       const mobile = getVal(rawData, 'mobile', 'mobile_number') || inputParams.mobile;
       const uan = getVal(rawData, 'uan', 'uan_number');

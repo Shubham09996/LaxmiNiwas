@@ -1,38 +1,63 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import Sidebar from './Sidebar.jsx';
 import TopNav from './TopNav.jsx';
 
 export default function Shell({ children }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeApiId = searchParams.get('api') || 'pan-advance';
+
+  const [sidebarSearch, setSidebarSearch] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleSelectService = (apiId) => {
+    setSearchParams({ api: apiId });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
-    <div className="min-h-screen bg-[#070B18] text-slate-100 flex flex-col antialiased selection:bg-indigo-500 selection:text-white relative overflow-x-hidden">
-      {/* Dynamic Ambient Background Glows */}
-      <div className="fixed top-0 left-1/4 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none -z-10"></div>
-      <div className="fixed top-1/3 right-10 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none -z-10"></div>
-      <div className="fixed bottom-0 left-1/3 w-[700px] h-[500px] bg-purple-600/10 rounded-full blur-[160px] pointer-events-none -z-10"></div>
-
-      <TopNav />
+    <div className="min-h-screen bg-[#F4F7FB] text-slate-900 flex flex-col antialiased font-sans w-full max-w-full overflow-x-hidden relative">
       
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 relative z-10">
-        {children}
-      </main>
+      {/* Ambient Top Glow */}
+      <div className="fixed top-0 left-0 right-0 h-96 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(59,130,246,0.08),rgba(255,255,255,0))] pointer-events-none z-0" />
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800/80 bg-slate-950/70 backdrop-blur-xl py-6 text-center text-xs text-slate-400 mt-12">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold text-white tracking-tight">Laxmi Niwas Verification Engine</span>
-            <span className="text-slate-600">•</span>
-            <span className="text-slate-400 font-medium">Customer Onboarding to Disbursement</span>
-          </div>
-          <div className="flex items-center gap-4 text-slate-400 font-medium">
-            <span className="flex items-center gap-1 text-emerald-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              Live Gateway APIs Active
+      {/* Modern Light Navigation Sidebar (w-72) */}
+      <Sidebar
+        selectedApiId={activeApiId}
+        onSelectService={handleSelectService}
+        searchQuery={sidebarSearch}
+        onSearchChange={setSidebarSearch}
+        isMobileOpen={isMobileMenuOpen}
+        onMobileClose={() => setIsMobileMenuOpen(false)}
+      />
+
+      {/* Main Workspace Frame (lg:pl-72 perfectly matches sidebar w-72) */}
+      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full lg:pl-72">
+        
+        {/* Sticky Top Header */}
+        <TopNav
+          onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        />
+
+        {/* Focused Application Workspace */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0">
+          {children}
+        </main>
+
+        {/* Minimal Enterprise Footer */}
+        <footer className="border-t border-slate-200/80 bg-white py-4 text-xs text-slate-400 mt-auto">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span className="font-semibold text-slate-600">
+              Laxmi Niwas Enterprise Verification Platform
             </span>
-            <span>•</span>
-            <span className="text-indigo-400 font-bold">Fast • Reliable • Statutory</span>
+            <span>
+              © {new Date().getFullYear()} Laxmi Niwas. All rights reserved.
+            </span>
           </div>
-        </div>
-      </footer>
+        </footer>
+
+      </div>
+
     </div>
   );
 }

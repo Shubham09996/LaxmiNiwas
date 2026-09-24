@@ -3,7 +3,7 @@ export const ALL_APIS = [
   {
     id: 'pan-advance',
     num: 1,
-    name: 'PAN Card Verification (Fuzzy Match)',
+    name: 'PAN Card Verification (Plus)',
     category: 'Statutory',
     gateway: 'Bharat Cloud',
     baseCost: 2.00,
@@ -11,12 +11,11 @@ export const ALL_APIS = [
     cost: 2.36,
     icon: 'CreditCard',
     tag: 'Bharat Cloud • NSDL',
-    description: 'Instant PAN verification with fuzzy legal applicant name matching against central NSDL records.',
-    details: '/srv2/validation/pan • POST • Bharat Cloud',
-    fixedRules: 'pan_display_name="false" • name_match_method="fuzzy"',
+    description: 'Live demographic, Aadhaar linkage & allotment data direct lookup via PAN number.',
+    details: '/srv2/validation/pan/plus • POST • Bharat Cloud',
+    fixedRules: 'Direct PAN Plus Gateway • Aadhaar Seeding & Allotment',
     sampleInput: {
-      pan: 'AAACL7821M',
-      name: 'SHUBHAM GUPTA'
+      pan_number: 'AAACL7821M'
     }
   },
   {
@@ -58,8 +57,27 @@ export const ALL_APIS = [
     }
   },
   {
-    id: 'bank-account-verification',
+    id: 'aadhaar-fetch-without-otp',
     num: 4,
+    name: 'Aadhar Fetch Without OTP',
+    category: 'Statutory',
+    gateway: 'Bharat Cloud',
+    baseCost: 8.00,
+    gst: 1.44,
+    cost: 9.44,
+    icon: 'Fingerprint',
+    tag: 'Bharat Cloud • UIDAI',
+    description: 'Direct live verification gateway powered by Bharat API Cloud with automatic wallet debit (₹9.44) & refunds.',
+    details: '/srv3/verification/aadhar • POST • No OTP Required',
+    fixedRules: '12 Digits (No OTP required) • Real-time statutory lookup',
+    sampleInput: {
+      aadhaar_number: '975589822424',
+      full_name: 'SHUBHAM GUPTA'
+    }
+  },
+  {
+    id: 'bank-account-verification',
+    num: 5,
     name: 'Bank Account Verification',
     category: 'Banking',
     gateway: 'Bharat Cloud',
@@ -77,7 +95,7 @@ export const ALL_APIS = [
   },
   {
     id: 'bank-ifsc-lookup',
-    num: 5,
+    num: 6,
     name: 'Bank IFSC Code Lookup',
     category: 'Banking',
     gateway: 'Bharat Cloud',
@@ -93,8 +111,44 @@ export const ALL_APIS = [
     }
   },
   {
+    id: 'mobile-to-bank-advance',
+    num: 7,
+    name: 'Mobile To Bank Advance (Live Account Linkage)',
+    category: 'Banking',
+    gateway: 'Bharat Cloud',
+    baseCost: 5.00,
+    gst: 0.90,
+    cost: 5.90,
+    icon: 'Landmark',
+    tag: 'Bharat Cloud • CBS Linkage',
+    description: 'Direct live verification gateway powered by Bharat API Cloud with automatic wallet debit (₹5.90) & refunds.',
+    details: '/srv3/mobile-to-bank/advance • POST • Live Account Linkage',
+    fixedRules: '10 Digits Mobile • Auto User Consent (Y Fixed)',
+    sampleInput: {
+      mobile: '8287270925'
+    }
+  },
+  {
+    id: 'mobile-upi-lookup-enhanced',
+    num: 8,
+    name: 'Mobile To UPI Lookup Enhanced',
+    category: 'Banking',
+    gateway: 'Bharat Cloud',
+    baseCost: 2.80,
+    gst: 0.50,
+    cost: 3.30,
+    icon: 'Smartphone',
+    tag: 'Bharat Cloud • NPCI',
+    description: 'Live NPCI directory lookup fetching UPI Virtual Payment Address (VPA) & account holder name.',
+    details: '/srv2/mobile-upi-lookup/enhanced • POST • NPCI Directory',
+    fixedRules: '10 Digits Mobile • Instant VPA & Name Match',
+    sampleInput: {
+      mobile: '8527475512'
+    }
+  },
+  {
     id: 'uan-lookup-mobile',
-    num: 6,
+    num: 9,
     name: 'EPFO / UAN Mobile Lookup',
     category: 'Employment',
     gateway: 'Bharat Cloud',
@@ -111,7 +165,7 @@ export const ALL_APIS = [
   },
   {
     id: 'uan-direct-history',
-    num: 7,
+    num: 10,
     name: 'UAN Direct Employment History',
     category: 'Employment',
     gateway: 'Bharat Cloud',
@@ -128,7 +182,7 @@ export const ALL_APIS = [
   },
   {
     id: 'mobile-profile-prefill',
-    num: 8,
+    num: 11,
     name: 'Mobile Profile & Reference Prefill',
     category: 'Telecom',
     gateway: 'Bharat Cloud',
@@ -147,7 +201,7 @@ export const ALL_APIS = [
   },
   {
     id: 'ip-fraud-geolocation',
-    num: 9,
+    num: 12,
     name: 'IP Fraud & Geolocation Risk',
     category: 'Cyber Risk',
     gateway: 'Bharat Cloud',
@@ -165,7 +219,7 @@ export const ALL_APIS = [
   },
   {
     id: 'reverse-geocoding',
-    num: 10,
+    num: 13,
     name: 'Reverse Geocoding (Coordinates)',
     category: 'Doorstep GPS',
     gateway: 'Bharat Cloud',
@@ -183,7 +237,7 @@ export const ALL_APIS = [
   },
   {
     id: 'domain-age-security',
-    num: 11,
+    num: 14,
     name: 'Domain Age & MX Security',
     category: 'Security',
     gateway: 'Bharat Cloud',
@@ -202,7 +256,7 @@ export const ALL_APIS = [
   // --- BHARAT CLOUD / IDSPAY CREDIT BUREAU (3 APIS) ---
   {
     id: 'cibil-transunion-pdf',
-    num: 12,
+    num: 15,
     name: 'CIBIL TransUnion Credit PDF',
     category: 'Credit Bureau',
     gateway: 'IDSPay',
@@ -225,7 +279,7 @@ export const ALL_APIS = [
   },
   {
     id: 'experian-credit-report',
-    num: 13,
+    num: 16,
     name: 'Experian Credit Bureau Report',
     category: 'Credit Bureau',
     gateway: 'Bharat Cloud',
@@ -247,7 +301,7 @@ export const ALL_APIS = [
   },
   {
     id: 'crif-credit-score-v4',
-    num: 14,
+    num: 17,
     name: 'CRIF HighMark Credit Score (V4)',
     category: 'Credit Bureau',
     gateway: 'Bharat Cloud',
@@ -267,10 +321,10 @@ export const ALL_APIS = [
   }
 ];
 
-export const TOTAL_BASE_COST = 154.59;
-export const TOTAL_GST = 27.82;
-export const TOTAL_COST_WITH_GST = 182.41;
-export const TOTAL_COST_PER_CUSTOMER = 182.41;
+export const TOTAL_BASE_COST = 170.39;
+export const TOTAL_GST = 30.66;
+export const TOTAL_COST_WITH_GST = 201.05;
+export const TOTAL_COST_PER_CUSTOMER = 201.05;
 export const SERVICES_CATALOG = ALL_APIS;
 export const API_STAGES = {};
 

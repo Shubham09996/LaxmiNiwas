@@ -1,22 +1,33 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Zap,
-  LogOut,
-  ShieldCheck,
+  Menu,
   User,
+  LogOut,
   ChevronDown,
-  Layers,
-  Activity
+  Volume2,
+  VolumeX,
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { soundEngine } from '../../utils/soundEffects.js';
-import { ALL_APIS, TOTAL_COST_WITH_GST } from '../../config/constants.js';
 
-export default function TopNav() {
+export default function TopNav({
+  masterProfile,
+  onOpenApplicantModal,
+  onMobileMenuToggle
+}) {
   const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => soundEngine.isEnabled());
+
+  const handleToggleSound = () => {
+    const newState = soundEngine.toggleSound();
+    setSoundOn(newState);
+  };
 
   const handleLogout = async () => {
     soundEngine.playClick();
@@ -25,58 +36,65 @@ export default function TopNav() {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-[#070B18]/80 backdrop-blur-2xl border-b border-slate-800/80 shadow-2xl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand */}
-        <NavLink to="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl overflow-hidden ring-1 ring-white/10 shadow-lg flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 flex-shrink-0 group-hover:scale-105 transition-transform">
-            <img
-              src="/logo.svg"
-              alt="Laxmi Niwas Logo"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-white text-base tracking-tight group-hover:text-indigo-400 transition-colors">
-                Laxmi Niwas
-              </span>
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-            </div>
-            <span className="text-[10px] text-slate-400 font-medium block">
-              Live Statutory Verification Gateway
-            </span>
-          </div>
-        </NavLink>
+    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/90 h-16 flex items-center px-4 sm:px-6 shadow-2xs select-none w-full max-w-full min-w-0">
+      <div className="w-full flex items-center justify-between gap-3 min-w-0">
+        
+        {/* Left: Mobile Toggle & Brand Context */}
+        <div className="flex items-center gap-2.5 min-w-0">
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            type="button"
+            onClick={() => {
+              soundEngine.playClick();
+              onMobileMenuToggle();
+            }}
+            className="lg:hidden p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex-shrink-0"
+            aria-label="Open Navigation"
+          >
+            <Menu className="w-5 h-5" />
+          </motion.button>
 
-        {/* Center Live Gateway Status Info */}
-        <div className="hidden md:flex items-center gap-3 bg-slate-900/90 px-4 py-2 rounded-2xl border border-slate-800/90 shadow-inner text-xs">
-          <div className="flex items-center gap-2 text-emerald-400 font-bold">
-            <Activity className="w-4 h-4 text-emerald-400 animate-pulse" />
-            <span>Gateways Live & Connected</span>
+          <div className="flex items-center gap-2 text-xs min-w-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="font-extrabold text-slate-900 text-sm tracking-tight whitespace-nowrap">Laxmi Niwas</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            </div>
+            <span className="text-slate-300 hidden xl:inline">/</span>
+            <span className="text-slate-500 font-medium hidden xl:inline whitespace-nowrap">Enterprise Verification Suite</span>
           </div>
-          <span className="text-slate-600">•</span>
-          <span className="text-indigo-300 font-bold font-mono">
-            {ALL_APIS.length} APIs (Bharat Cloud Live Engine)
-          </span>
-          <span className="text-slate-600">•</span>
-          <span className="text-emerald-400 font-extrabold font-mono bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30">
-            ₹ {TOTAL_COST_WITH_GST.toFixed(2)}
-          </span>
         </div>
 
-        {/* Right Section: User Profile Pill / Logout */}
-        <div className="flex items-center gap-3">
+        {/* Right: Controls, Applicant Capsule & User Account */}
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 min-w-0">
+          
+          {/* Sound Toggle */}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            type="button"
+            onClick={handleToggleSound}
+            className={`p-2 rounded-xl border transition-colors flex-shrink-0 cursor-pointer ${
+              soundOn
+                ? 'bg-slate-50 border-slate-200 text-brand-600 hover:bg-slate-100'
+                : 'bg-slate-50 border-slate-200 text-slate-400 hover:text-slate-600'
+            }`}
+            title={soundOn ? 'Interactive Audio Feedback: Enabled' : 'Interactive Audio Feedback: Muted'}
+          >
+            {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </motion.button>
+
+          {/* User Account Popover */}
           {isAuthenticated && user ? (
-            <div className="relative">
-              <button
-                onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2.5 p-1.5 pr-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-700/80 transition-all text-left group"
+            <div className="relative flex-shrink-0">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                type="button"
+                onClick={() => {
+                  soundEngine.playClick();
+                  setProfileOpen(!profileOpen);
+                }}
+                className="flex items-center gap-2 p-1.5 pr-2.5 rounded-xl hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors border border-transparent hover:border-slate-200/70"
               >
-                <div className="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-indigo-500/50 flex-shrink-0 bg-indigo-950 flex items-center justify-center text-indigo-300 font-bold text-xs">
+                <div className="w-7 h-7 rounded-lg overflow-hidden ring-1 ring-slate-200 bg-brand-50 flex items-center justify-center text-brand-700 font-bold text-xs">
                   {user.avatar ? (
                     <img
                       src={user.avatar}
@@ -84,63 +102,68 @@ export default function TopNav() {
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = 'https://ui-avatars.com/api/?name=Shubham+Agrawal&background=4f46e5&color=fff';
+                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=0F172A&color=fff`;
                       }}
                     />
                   ) : (
-                    <User className="w-4 h-4" />
+                    <User className="w-3.5 h-3.5 text-navy-900" />
                   )}
                 </div>
-                <div className="hidden sm:block">
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs font-bold text-white group-hover:text-indigo-300 transition-colors">
-                      {user.name}
-                    </span>
-                    <span className="text-[10px]">👑</span>
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-medium block">
-                    {user.role}
-                  </span>
-                </div>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition-colors" />
-              </button>
 
-              {/* Profile Dropdown Menu */}
-              {profileOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setProfileOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-2 z-20 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-3 py-2 border-b border-slate-800 mb-1">
-                      <p className="text-xs font-bold text-white">{user.name}</p>
-                      <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
-                      <span className="inline-block mt-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        {user.role}
-                      </span>
-                    </div>
+                <span className="hidden sm:inline font-bold text-slate-800 truncate max-w-[110px]">
+                  {user.name}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
+              </motion.button>
 
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+              <AnimatePresence>
+                {profileOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setProfileOpen(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-56 rounded-2xl bg-white border border-slate-200 shadow-elevated p-2 z-20 text-xs"
                     >
-                      <LogOut className="w-3.5 h-3.5" />
-                      <span>Sign Out</span>
-                    </button>
-                  </div>
-                </>
-              )}
+                      <div className="px-3 py-2 border-b border-slate-100 mb-1">
+                        <p className="font-bold text-slate-900 truncate">{user.name}</p>
+                        <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
+                        {user.role && (
+                          <span className="inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                            {user.role}
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 transition-colors font-semibold"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Sign Out</span>
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
             </div>
           ) : (
             <NavLink
               to="/login"
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shadow-glow-indigo"
+              className="px-4 py-2 rounded-xl bg-navy-900 hover:bg-navy-950 text-white text-xs font-semibold shadow-2xs transition-colors"
             >
               Sign In
             </NavLink>
           )}
+
         </div>
+
       </div>
     </header>
   );

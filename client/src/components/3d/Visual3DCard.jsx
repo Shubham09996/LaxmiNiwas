@@ -146,6 +146,111 @@ function CopyableValue({ label, value, isMono = false, isBold = false, highlight
   );
 }
 
+function extractAllUniqueFields(data = {}, raw = {}) {
+  const fields = [];
+  const seenKeys = new Set();
+  const sensitiveNoiseKeys = new Set(['api_key', 'token_id', 'password', 'cardType', 'issuer', 'url', 'rawText']);
+
+  const addField = (key, val) => {
+    if (!isValidValue(val)) return;
+    const normKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (seenKeys.has(normKey) || sensitiveNoiseKeys.has(key)) return;
+    seenKeys.add(normKey);
+
+    let displayVal = val;
+
+    if (typeof val === 'object' && val !== null) {
+      if (Array.isArray(val)) {
+        displayVal = val.map(item => (typeof item === 'object' ? JSON.stringify(item) : String(item))).join(', ');
+      } else {
+        const nestedParts = Object.entries(val)
+          .filter(([_, v]) => isValidValue(v))
+          .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
+        displayVal = nestedParts.length > 0 ? nestedParts.join(' • ') : null;
+      }
+    } else if (typeof val === 'boolean') {
+      displayVal = val ? 'Yes' : 'No';
+    }
+
+    if (!isValidValue(displayVal)) return;
+
+    const humanLabel = key
+      .replace(/_/g, ' ')
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/\b\w/g, l => l.toUpperCase())
+      .trim();
+
+    fields.push({
+      key,
+      label: humanLabel,
+      value: String(displayVal),
+      isMono: typeof val === 'number' || /^[A-Z0-9_\-\.\/]+$/.test(String(displayVal))
+    });
+  };
+
+  // 1. Traverse sub-objects (raw.data, raw.result, raw.response, raw.details)
+  const subObjects = [raw?.data, raw?.result, raw?.response, raw?.details].filter(o => o && typeof o === 'object');
+  for (const sub of subObjects) {
+    if (typeof sub === 'object' && !Array.isArray(sub)) {
+      for (const [k, v] of Object.entries(sub)) {
+        addField(k, v);
+      }
+    }
+  }
+
+  // 2. Traverse top-level raw
+  if (raw && typeof raw === 'object') {
+    for (const [k, v] of Object.entries(raw)) {
+      if (k !== 'data' && k !== 'result' && k !== 'response' && k !== 'details') {
+        addField(k, v);
+      }
+    }
+  }
+
+  // 3. Traverse mapped visualData
+  if (data && typeof data === 'object') {
+    for (const [k, v] of Object.entries(data)) {
+      addField(k, v);
+    }
+  }
+
+  return fields;
+}
+
+function DynamicAllFieldsGrid({ data = {}, raw = {}, title = "Complete Upstream Response Attributes" }) {
+  const allFields = extractAllUniqueFields(data, raw);
+
+  if (allFields.length === 0) return null;
+
+  return (
+    <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-5 space-y-3.5 shadow-2xs">
+      <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/70">
+        <div className="flex items-center gap-2">
+          <Layers className="w-4 h-4 text-blue-600" />
+          <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
+            {title}
+          </h4>
+        </div>
+        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs">
+          {allFields.length} Verified Attributes
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-3.5 gap-x-6">
+        {allFields.map((field) => (
+          <CopyableValue
+            key={field.key}
+            label={field.label}
+            value={field.value}
+            isMono={field.isMono}
+            highlightColor={field.key.toLowerCase().includes('status') ? 'text-emerald-700 font-bold' : 'text-slate-900'}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Visual3DCard({ result }) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
@@ -244,7 +349,7 @@ export default function Visual3DCard({ result }) {
         </div>
       )}
 
-      {/* 100% Visual Renderers (Zero Raw JSON) */}
+      {/* 100% Visual Renderers + Complete Dynamic Attributes Grid */}
       <div className="space-y-6">
         {cardType === 'PAN_CARD' && <PanReport data={visualData} raw={data} />}
         {cardType === 'DIGILOCKER_GENERATE_CARD' && <DigiLockerGenerateReport data={visualData} raw={data} />}
@@ -262,6 +367,9 @@ export default function Visual3DCard({ result }) {
         {cardType === 'CIBIL_PDF_CARD' && <CibilPdfReport data={visualData} raw={data} />}
         {cardType === 'BUREAU_SCORE_CARD' && <BureauScoreReport data={visualData} raw={data} />}
         {cardType === 'GENERIC_CARD' && <GenericReport data={visualData} raw={data} />}
+
+        {/* Complete Response Attributes (100% data, skips empty/null) */}
+        <DynamicAllFieldsGrid data={visualData} raw={data} />
       </div>
 
     </motion.div>

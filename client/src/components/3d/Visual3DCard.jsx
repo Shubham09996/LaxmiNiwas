@@ -146,110 +146,6 @@ function CopyableValue({ label, value, isMono = false, isBold = false, highlight
   );
 }
 
-function extractAllUniqueFields(data = {}, raw = {}) {
-  const fields = [];
-  const seenKeys = new Set();
-  const sensitiveNoiseKeys = new Set(['api_key', 'token_id', 'password', 'cardType', 'issuer', 'url', 'rawText']);
-
-  const addField = (key, val) => {
-    if (!isValidValue(val)) return;
-    const normKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (seenKeys.has(normKey) || sensitiveNoiseKeys.has(key)) return;
-    seenKeys.add(normKey);
-
-    let displayVal = val;
-
-    if (typeof val === 'object' && val !== null) {
-      if (Array.isArray(val)) {
-        displayVal = val.map(item => (typeof item === 'object' ? JSON.stringify(item) : String(item))).join(', ');
-      } else {
-        const nestedParts = Object.entries(val)
-          .filter(([_, v]) => isValidValue(v))
-          .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
-        displayVal = nestedParts.length > 0 ? nestedParts.join(' • ') : null;
-      }
-    } else if (typeof val === 'boolean') {
-      displayVal = val ? 'Yes' : 'No';
-    }
-
-    if (!isValidValue(displayVal)) return;
-
-    const humanLabel = key
-      .replace(/_/g, ' ')
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/\b\w/g, l => l.toUpperCase())
-      .trim();
-
-    fields.push({
-      key,
-      label: humanLabel,
-      value: String(displayVal),
-      isMono: typeof val === 'number' || /^[A-Z0-9_\-\.\/]+$/.test(String(displayVal))
-    });
-  };
-
-  // 1. Traverse sub-objects (raw.data, raw.result, raw.response, raw.details)
-  const subObjects = [raw?.data, raw?.result, raw?.response, raw?.details].filter(o => o && typeof o === 'object');
-  for (const sub of subObjects) {
-    if (typeof sub === 'object' && !Array.isArray(sub)) {
-      for (const [k, v] of Object.entries(sub)) {
-        addField(k, v);
-      }
-    }
-  }
-
-  // 2. Traverse top-level raw
-  if (raw && typeof raw === 'object') {
-    for (const [k, v] of Object.entries(raw)) {
-      if (k !== 'data' && k !== 'result' && k !== 'response' && k !== 'details') {
-        addField(k, v);
-      }
-    }
-  }
-
-  // 3. Traverse mapped visualData
-  if (data && typeof data === 'object') {
-    for (const [k, v] of Object.entries(data)) {
-      addField(k, v);
-    }
-  }
-
-  return fields;
-}
-
-function DynamicAllFieldsGrid({ data = {}, raw = {}, title = "Complete Upstream Response Attributes" }) {
-  const allFields = extractAllUniqueFields(data, raw);
-
-  if (allFields.length === 0) return null;
-
-  return (
-    <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-5 space-y-3.5 shadow-2xs">
-      <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/70">
-        <div className="flex items-center gap-2">
-          <Layers className="w-4 h-4 text-blue-600" />
-          <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
-            {title}
-          </h4>
-        </div>
-        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs">
-          {allFields.length} Verified Attributes
-        </span>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-3.5 gap-x-6">
-        {allFields.map((field) => (
-          <CopyableValue
-            key={field.key}
-            label={field.label}
-            value={field.value}
-            isMono={field.isMono}
-            highlightColor={field.key.toLowerCase().includes('status') ? 'text-emerald-700 font-bold' : 'text-slate-900'}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function Visual3DCard({ result }) {
   const toast = useToast();
@@ -367,9 +263,6 @@ export default function Visual3DCard({ result }) {
         {cardType === 'CIBIL_PDF_CARD' && <CibilPdfReport data={visualData} raw={data} />}
         {cardType === 'BUREAU_SCORE_CARD' && <BureauScoreReport data={visualData} raw={data} />}
         {cardType === 'GENERIC_CARD' && <GenericReport data={visualData} raw={data} />}
-
-        {/* Complete Response Attributes (100% data, skips empty/null) */}
-        <DynamicAllFieldsGrid data={visualData} raw={data} />
       </div>
 
     </motion.div>
@@ -502,11 +395,26 @@ function PanReport({ data = {}, raw = {} }) {
           {isValidValue(fatherName) && <CopyableValue label="Father's Name" value={fatherName} />}
           {isValidValue(dob) && <CopyableValue label="Date of Birth" value={dob} isMono />}
           {isValidValue(gender) && <CopyableValue label="Gender" value={gender} />}
-          {isValidValue(data.allotmentDate || raw.pan_allotment_date) && <CopyableValue label="PAN Allotment Date" value={data.allotmentDate || raw.pan_allotment_date} isMono />}
+          {isValidValue(aadhaarNumber) && <CopyableValue label="Masked Aadhaar Number" value={aadhaarNumber} isMono />}
+          {isValidValue(data.allotmentDate || raw.pan_allotment_date || raw.data?.pan_allotment_date) && (
+            <CopyableValue label="PAN Allotment Date" value={data.allotmentDate || raw.pan_allotment_date || raw.data?.pan_allotment_date} isMono />
+          )}
+          {isValidValue(data.isSoleProprietor || raw.is_sole_proprietor || raw.data?.is_sole_proprietor) && (
+            <CopyableValue label="Sole Proprietor" value={data.isSoleProprietor || (raw.data?.is_sole_proprietor === 'Y' ? 'Yes' : (raw.data?.is_sole_proprietor === 'N' ? 'No' : (raw.is_sole_proprietor === 'Y' ? 'Yes' : (raw.is_sole_proprietor === 'N' ? 'No' : raw.data?.is_sole_proprietor || raw.is_sole_proprietor))))} />
+          )}
+          {isValidValue(data.isDirector || raw.is_director || raw.data?.is_director) && (
+            <CopyableValue label="Company Director" value={data.isDirector || (raw.data?.is_director === 'Y' ? 'Yes' : (raw.data?.is_director === 'N' ? 'No' : (raw.is_director === 'Y' ? 'Yes' : (raw.is_director === 'N' ? 'No' : raw.data?.is_director || raw.is_director))))} />
+          )}
+          {isValidValue(data.isSalaried || raw.is_salaried || raw.data?.is_salaried) && (
+            <CopyableValue label="Salaried Individual" value={data.isSalaried || (raw.data?.is_salaried === 'Y' ? 'Yes' : (raw.data?.is_salaried === 'N' ? 'No' : (raw.is_salaried === 'Y' ? 'Yes' : (raw.is_salaried === 'N' ? 'No' : raw.data?.is_salaried || raw.is_salaried))))} />
+          )}
           
           <CopyableValue label="Aadhaar Seeding Status" value={aadhaarLinked ? 'Seeded (Y)' : 'Not Seeded (N)'} isBold highlightColor="text-emerald-700" />
           <CopyableValue label="Issuing Authority" value="Income Tax Department • Govt. of India" isBold />
           <CopyableValue label="Client Audit Reference" value={clientRefNum} isMono />
+          {isValidValue(data.requestId || raw.request_id || raw.data?.request_id) && (
+            <CopyableValue label="Gateway Request ID" value={data.requestId || raw.request_id || raw.data?.request_id} isMono />
+          )}
           {isValidValue(mobile) && <CopyableValue label="Linked Mobile" value={mobile} isMono />}
           {isValidValue(email) && <CopyableValue label="Registered Email" value={email} />}
           {isValidValue(matchScore) && <CopyableValue label="Name Match Score" value={matchScore} isMono isBold highlightColor="text-blue-700" />}

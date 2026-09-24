@@ -17,7 +17,7 @@ export default function Shell({ children }) {
 
   return (
     <div className="min-h-screen bg-[#F4F7FB] text-slate-900 flex flex-col antialiased font-sans w-full max-w-full overflow-x-hidden relative">
-      
+
       {/* Ambient Top Glow */}
       <div className="fixed top-0 left-0 right-0 h-96 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(59,130,246,0.08),rgba(255,255,255,0))] pointer-events-none z-0" />
 
@@ -33,7 +33,7 @@ export default function Shell({ children }) {
 
       {/* Main Workspace Frame (lg:pl-72 perfectly matches sidebar w-72) */}
       <div className="flex-1 flex flex-col min-w-0 w-full max-w-full lg:pl-72">
-        
+
         {/* Sticky Top Header */}
         <TopNav
           onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

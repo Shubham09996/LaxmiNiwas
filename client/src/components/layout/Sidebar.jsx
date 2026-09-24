@@ -167,12 +167,11 @@ export default function Sidebar({
 
       {/* Modern High-End Light Sidebar Frame */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 w-72 bg-[#FAFBFD] text-slate-800 border-r border-slate-200/90 flex flex-col justify-between transition-transform duration-200 ease-in-out select-none lg:translate-x-0 ${
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 bottom-0 left-0 z-40 w-72 bg-[#FAFBFD] text-slate-800 border-r border-slate-200/90 flex flex-col justify-between transition-transform duration-200 ease-in-out select-none lg:translate-x-0 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="flex flex-col h-full overflow-hidden">
-          
+
           {/* Institutional Brand Header */}
           <div className="h-16 px-4 border-b border-slate-100 bg-white/95 backdrop-blur-md flex items-center justify-between flex-shrink-0 relative overflow-hidden">
             <div className="flex items-center gap-3 relative z-10">
@@ -271,40 +270,35 @@ export default function Sidebar({
                           whileHover={{ x: 2 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={() => handleItemClick(item.id)}
-                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all duration-150 group relative cursor-pointer ${
-                            isSelected
-                              ? 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-semibold shadow-md shadow-blue-500/25 border border-transparent'
-                              : 'text-slate-700 hover:text-slate-900 hover:bg-white hover:shadow-2xs border border-transparent'
-                          }`}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all duration-150 group relative cursor-pointer ${isSelected
+                            ? 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-semibold shadow-md shadow-blue-500/25 border border-transparent'
+                            : 'text-slate-700 hover:text-slate-900 hover:bg-white hover:shadow-2xs border border-transparent'
+                            }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                              isSelected
-                                ? 'bg-white text-blue-600 shadow-2xs font-bold'
-                                : `${groupColors.iconBg} group-hover:bg-white group-hover:shadow-2xs`
-                            }`}>
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isSelected
+                              ? 'bg-white text-blue-600 shadow-2xs font-bold'
+                              : `${groupColors.iconBg} group-hover:bg-white group-hover:shadow-2xs`
+                              }`}>
                               <IconComp className="w-3.5 h-3.5" />
                             </div>
                             <div className="min-w-0">
-                              <span className={`text-[12.5px] tracking-[-0.01em] truncate block leading-snug ${
-                                isSelected ? 'text-white font-bold' : 'text-slate-800 font-semibold group-hover:text-slate-900'
-                              }`}>
+                              <span className={`text-[12.5px] tracking-[-0.01em] truncate block leading-snug ${isSelected ? 'text-white font-bold' : 'text-slate-800 font-semibold group-hover:text-slate-900'
+                                }`}>
                                 {item.name}
                               </span>
-                              <span className={`text-[11px] font-mono block leading-none mt-0.5 ${
-                                isSelected ? 'text-blue-100 font-semibold' : 'text-slate-400 font-medium group-hover:text-slate-600'
-                              }`}>
+                              <span className={`text-[11px] font-mono block leading-none mt-0.5 ${isSelected ? 'text-blue-100 font-semibold' : 'text-slate-400 font-medium group-hover:text-slate-600'
+                                }`}>
                                 ₹{item.cost.toFixed(2)}
                               </span>
                             </div>
                           </div>
 
                           <ChevronRight
-                            className={`w-3.5 h-3.5 flex-shrink-0 transition-all ${
-                              isSelected
-                                ? 'text-white translate-x-0 opacity-100'
-                                : 'text-slate-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5'
-                            }`}
+                            className={`w-3.5 h-3.5 flex-shrink-0 transition-all ${isSelected
+                              ? 'text-white translate-x-0 opacity-100'
+                              : 'text-slate-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5'
+                              }`}
                           />
                         </motion.button>
                       );
@@ -328,7 +322,7 @@ export default function Sidebar({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span>14 Gateways Live</span>
+              <span>{ALL_APIS.length} APIs Live</span>
             </div>
             <span className="text-[10px] text-emerald-700 font-mono font-bold bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
               99.98% SLA

@@ -258,6 +258,23 @@ export function buildEnrichedPayload(apiId, inputParams = {}, req = null) {
         last_name: lastName || (inputParams.last_name || '').toUpperCase().trim()
       };
 
+    // 16. Work Email Verifier Plus
+    case 'work-email-plus':
+    case 'work-email-verifier-plus':
+    case 'work-email':
+    case 'office-email':
+      return {
+        email: String(
+          inputParams.email ||
+          inputParams.work_email ||
+          inputParams.business_email ||
+          inputParams.corporate_email ||
+          inputParams.email_id ||
+          inputParams.official_email ||
+          ''
+        ).trim().toLowerCase()
+      };
+
     default:
       return inputParams;
   }

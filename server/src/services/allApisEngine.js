@@ -132,6 +132,14 @@ export async function executeApiTest(apiId, rawInputParams = {}, req = null) {
       liveResult = await gatewayService.getCrifCreditScore(inputParams);
       break;
 
+    // 15. Work Email Verifier Plus
+    case 'work-email-plus':
+    case 'work-email-verifier-plus':
+    case 'work-email':
+    case 'office-email':
+      liveResult = await gatewayService.verifyWorkEmailPlus(inputParams);
+      break;
+
     default:
       throw new Error(`Unsupported API route '${foundApi.id}'`);
   }
@@ -1031,6 +1039,72 @@ async function buildVisualData(apiId, inputParams, rawData, isSuccess) {
         inquiries: inquiries !== null && inquiries !== undefined ? inquiries : null,
         status: isSuccess ? 'CREDIT REPORT CERTIFIED' : 'BUREAU UNREACHABLE',
         issuer: bureauName
+      };
+    }
+
+    // 15. Work Email Verifier Plus
+    case 'work-email-plus':
+    case 'work-email-verifier-plus':
+    case 'work-email':
+    case 'office-email': {
+      const dataObj = rawData.data || rawData.result || rawData;
+      const domainObj = dataObj.domain || {};
+      const accountObj = dataObj.account || {};
+      const mxRecords = dataObj.mx_records || rawData.mx_records || [];
+
+      const email = dataObj.email || rawData.email || inputParams.email || '';
+      const result = dataObj.result || rawData.result || (isSuccess ? 'deliverable' : 'unknown');
+      const isValid = Boolean(dataObj.is_valid !== undefined ? dataObj.is_valid : rawData.is_valid);
+      const isSyntaxValid = Boolean(dataObj.is_syntax_valid !== undefined ? dataObj.is_syntax_valid : (rawData.is_syntax_valid !== undefined ? rawData.is_syntax_valid : true));
+      const isCorporate = Boolean(dataObj.is_corporate !== undefined ? dataObj.is_corporate : rawData.is_corporate);
+      const reason = dataObj.reason || rawData.reason || '';
+
+      const domainName = domainObj.name || (email.includes('@') ? email.split('@')[1] : '');
+      const domainIsValid = domainObj.is_valid !== undefined ? Boolean(domainObj.is_valid) : true;
+      const domainIsDisposable = Boolean(domainObj.is_disposable);
+      const domainIsFree = Boolean(domainObj.is_free);
+      const domainIsSpam = Boolean(domainObj.is_spam);
+      const domainIsCatchAll = Boolean(domainObj.is_catch_all);
+
+      const isRole = Boolean(accountObj.is_role);
+      const isFullMailbox = Boolean(accountObj.is_full_mailbox);
+
+      const orderId = dataObj.order_id || rawData.order_id || '';
+      const clientRefNum = rawData.client_ref_num || '';
+      const requestId = rawData.request_id || '';
+      const durationMs = dataObj.duration_ms || rawData.duration_ms || null;
+      const verifiedAt = dataObj.verified_at || rawData.verified_at || '';
+      const charged = dataObj.charged !== undefined ? dataObj.charged : rawData.charged;
+
+      return {
+        cardType: 'WORK_EMAIL_PLUS_CARD',
+        email,
+        result,
+        isValid,
+        isSyntaxValid,
+        isCorporate,
+        reason,
+        domain: {
+          name: domainName,
+          isValid: domainIsValid,
+          isDisposable: domainIsDisposable,
+          isFree: domainIsFree,
+          isSpam: domainIsSpam,
+          isCatchAll: domainIsCatchAll
+        },
+        account: {
+          isRole,
+          isFullMailbox
+        },
+        mxRecords: Array.isArray(mxRecords) ? mxRecords : [],
+        orderId,
+        clientRefNum,
+        requestId,
+        durationMs,
+        verifiedAt,
+        charged,
+        status: rawData.status || (isSuccess ? 'SUCCESS' : 'FAILED'),
+        message: rawData.message || (isSuccess ? 'Work email plus verified successfully' : 'Verification failed')
       };
     }
 

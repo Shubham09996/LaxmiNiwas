@@ -150,6 +150,7 @@ function CopyableValue({ label, value, isMono = false, isBold = false, highlight
 export default function Visual3DCard({ result }) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState('visual'); // 'visual' | 'json'
 
   if (!result) return null;
 
@@ -237,6 +238,46 @@ export default function Visual3DCard({ result }) {
         </motion.button>
       </div>
 
+      {/* View Mode Tab Switcher */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 text-xs font-bold shadow-2xs">
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playClick();
+              setActiveTab('visual');
+            }}
+            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'visual'
+                ? 'bg-white text-slate-900 shadow-xs border border-slate-200/90'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Visual Identity Card</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playClick();
+              setActiveTab('json');
+            }}
+            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'json'
+                ? 'bg-white text-slate-900 shadow-xs border border-slate-200/90'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5 text-blue-600" />
+            <span>Raw JSON Response</span>
+          </button>
+        </div>
+
+        <span className="text-[10.5px] font-mono text-slate-400">
+          {activeTab === 'visual' ? 'High-fidelity formatted dossier' : 'Raw untouched gateway payload'}
+        </span>
+      </div>
+
       {/* Upstream Error Notice (Only when failed) */}
       {!success && error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2.5">
@@ -245,25 +286,38 @@ export default function Visual3DCard({ result }) {
         </div>
       )}
 
-      {/* 100% Visual Renderers + Complete Dynamic Attributes Grid */}
-      <div className="space-y-6">
-        {cardType === 'PAN_CARD' && <PanReport data={visualData} raw={data} />}
-        {cardType === 'DIGILOCKER_GENERATE_CARD' && <DigiLockerGenerateReport data={visualData} raw={data} />}
-        {cardType === 'AADHAAR_CARD' && <AadhaarReport data={visualData} raw={data} />}
-        {cardType === 'BANK_ACCOUNT_CARD' && <BankAccountReport data={visualData} raw={data} />}
-        {cardType === 'MOBILE_TO_BANK_CARD' && <MobileToBankReport data={visualData} raw={data} />}
-        {cardType === 'UPI_LOOKUP_CARD' && <UpiLookupReport data={visualData} raw={data} />}
-        {cardType === 'IFSC_DIRECTORY_CARD' && <IfscDirectoryReport data={visualData} raw={data} />}
-        {cardType === 'UAN_LOOKUP_CARD' && <UanLookupReport data={visualData} raw={data} />}
-        {cardType === 'UAN_HISTORY_CARD' && <UanHistoryReport data={visualData} raw={data} />}
-        {cardType === 'TELECOM_CARD' && <TelecomReport data={visualData} raw={data} />}
-        {cardType === 'IP_FRAUD_CARD' && <IpFraudReport data={visualData} raw={data} />}
-        {cardType === 'GEO_REVERSE_CARD' && <GeoReverseReport data={visualData} raw={data} />}
-        {cardType === 'DOMAIN_CARD' && <DomainReport data={visualData} raw={data} />}
-        {cardType === 'CIBIL_PDF_CARD' && <CibilPdfReport data={visualData} raw={data} />}
-        {cardType === 'BUREAU_SCORE_CARD' && <BureauScoreReport data={visualData} raw={data} />}
-        {cardType === 'GENERIC_CARD' && <GenericReport data={visualData} raw={data} />}
-      </div>
+      {/* 100% Visual Renderers vs Raw JSON View */}
+      {activeTab === 'json' ? (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-[11px] text-slate-500 pb-1">
+            <span className="font-mono font-semibold text-slate-700">Payload Source: Live Gateway Rail</span>
+            <span className="font-mono">JSON Size: {JSON.stringify(result).length} chars</span>
+          </div>
+          <pre className="p-4 sm:p-5 bg-slate-950 text-emerald-400 font-mono text-[11.5px] rounded-xl overflow-x-auto border border-slate-800 shadow-inner max-h-[580px] leading-relaxed selection:bg-emerald-900 selection:text-white">
+            {JSON.stringify(result, null, 2)}
+          </pre>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {cardType === 'PAN_CARD' && <PanReport data={visualData} raw={data} />}
+          {cardType === 'DIGILOCKER_GENERATE_CARD' && <DigiLockerGenerateReport data={visualData} raw={data} />}
+          {cardType === 'AADHAAR_CARD' && <AadhaarReport data={visualData} raw={data} />}
+          {cardType === 'BANK_ACCOUNT_CARD' && <BankAccountReport data={visualData} raw={data} />}
+          {cardType === 'MOBILE_TO_BANK_CARD' && <MobileToBankReport data={visualData} raw={data} />}
+          {cardType === 'UPI_LOOKUP_CARD' && <UpiLookupReport data={visualData} raw={data} />}
+          {cardType === 'IFSC_DIRECTORY_CARD' && <IfscDirectoryReport data={visualData} raw={data} />}
+          {cardType === 'UAN_LOOKUP_CARD' && <UanLookupReport data={visualData} raw={data} />}
+          {cardType === 'UAN_HISTORY_CARD' && <UanHistoryReport data={visualData} raw={data} />}
+          {cardType === 'TELECOM_CARD' && <TelecomReport data={visualData} raw={data} />}
+          {cardType === 'IP_FRAUD_CARD' && <IpFraudReport data={visualData} raw={data} />}
+          {cardType === 'GEO_REVERSE_CARD' && <GeoReverseReport data={visualData} raw={data} />}
+          {cardType === 'DOMAIN_CARD' && <DomainReport data={visualData} raw={data} />}
+          {cardType === 'WORK_EMAIL_PLUS_CARD' && <WorkEmailPlusReport data={visualData} raw={data} />}
+          {cardType === 'CIBIL_PDF_CARD' && <CibilPdfReport data={visualData} raw={data} />}
+          {cardType === 'BUREAU_SCORE_CARD' && <BureauScoreReport data={visualData} raw={data} />}
+          {cardType === 'GENERIC_CARD' && <GenericReport data={visualData} raw={data} />}
+        </div>
+      )}
 
     </motion.div>
   );
@@ -1629,7 +1683,180 @@ function DomainReport({ data = {}, raw = {} }) {
 }
 
 /* =========================================================================
-   12. CIBIL TRANSUNION PDF REPORT (100% UNTOUCHED ENGINE & IFRAME)
+   12. WORK EMAIL VERIFIER PLUS REPORT
+   ========================================================================= */
+function WorkEmailPlusReport({ data = {}, raw = {} }) {
+  const email = data.email || raw.email || raw.data?.email || raw.result?.email || '—';
+  const rawResult = String(data.result || raw.result?.result || raw.data?.result || raw.result || 'unknown').toLowerCase();
+  
+  const isValid = data.isValid !== undefined ? Boolean(data.isValid) : (raw.data?.is_valid !== undefined ? Boolean(raw.data.is_valid) : (raw.is_valid !== undefined ? Boolean(raw.is_valid) : false));
+  const isSyntaxValid = data.isSyntaxValid !== undefined ? Boolean(data.isSyntaxValid) : (raw.data?.is_syntax_valid !== undefined ? Boolean(raw.data.is_syntax_valid) : true);
+  const isCorporate = data.isCorporate !== undefined ? Boolean(data.isCorporate) : (raw.data?.is_corporate !== undefined ? Boolean(raw.data.is_corporate) : false);
+  const reason = data.reason || raw.data?.reason || raw.result?.reason || raw.reason || '';
+
+  const domainObj = data.domain || raw.data?.domain || raw.result?.domain || {};
+  const domainName = domainObj.name || (email.includes('@') ? email.split('@')[1] : '—');
+  const domainIsValid = domainObj.isValid !== undefined ? domainObj.isValid : (domainObj.is_valid !== undefined ? domainObj.is_valid : true);
+  const domainIsCatchAll = domainObj.isCatchAll !== undefined ? domainObj.isCatchAll : Boolean(domainObj.is_catch_all);
+  const domainIsFree = domainObj.isFree !== undefined ? domainObj.isFree : Boolean(domainObj.is_free);
+  const domainIsDisposable = domainObj.isDisposable !== undefined ? domainObj.isDisposable : Boolean(domainObj.is_disposable);
+  const domainIsSpam = domainObj.isSpam !== undefined ? domainObj.isSpam : Boolean(domainObj.is_spam);
+
+  const accountObj = data.account || raw.data?.account || raw.result?.account || {};
+  const isRole = accountObj.isRole !== undefined ? accountObj.isRole : Boolean(accountObj.is_role);
+  const isFullMailbox = accountObj.isFullMailbox !== undefined ? accountObj.isFullMailbox : Boolean(accountObj.is_full_mailbox);
+
+  const mxRecords = (data.mxRecords && data.mxRecords.length > 0)
+    ? data.mxRecords
+    : (Array.isArray(raw.data?.mx_records) ? raw.data.mx_records : (Array.isArray(raw.result?.mx_records) ? raw.result.mx_records : (Array.isArray(raw.mx_records) ? raw.mx_records : [])));
+
+  const orderId = data.orderId || raw.order_id || raw.data?.order_id || '—';
+  const clientRefNum = data.clientRefNum || raw.client_ref_num || raw.data?.client_ref_num || '';
+  const requestId = data.requestId || raw.request_id || '';
+  const durationMs = data.durationMs || raw.data?.duration_ms || raw.duration_ms || null;
+  const verifiedAt = data.verifiedAt || raw.data?.verified_at || raw.verified_at || '';
+  const charged = data.charged !== undefined ? data.charged : raw.charged;
+
+  // Visual verdict status badge
+  let badgeTheme = 'bg-blue-500/20 text-blue-300 border-blue-500/40';
+  let badgeLabel = 'PROTECTED / UNKNOWN';
+  let glowColor = 'from-blue-500/10 to-indigo-500/10';
+
+  if (rawResult === 'deliverable' || rawResult === 'valid' || (isValid && !domainIsCatchAll)) {
+    badgeTheme = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+    badgeLabel = '✓ DELIVERABLE (MAILBOX ACTIVE)';
+    glowColor = 'from-emerald-500/10 to-teal-500/10';
+  } else if (rawResult === 'risky' || domainIsCatchAll) {
+    badgeTheme = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+    badgeLabel = '⚠️ RISKY (ACCEPT-ALL DOMAIN)';
+    glowColor = 'from-amber-500/10 to-orange-500/10';
+  } else if (rawResult === 'undeliverable' || rawResult === 'invalid' || !isSyntaxValid) {
+    badgeTheme = 'bg-red-500/20 text-red-300 border-red-500/40';
+    badgeLabel = '✕ UNDELIVERABLE / INVALID';
+    glowColor = 'from-red-500/10 to-rose-500/10';
+  }
+
+  return (
+    <div className="space-y-5 text-xs">
+      
+      {/* Visual Digital Work Email Card */}
+      <div className={`relative rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white p-5 sm:p-6 shadow-md overflow-hidden border border-slate-800`}>
+        {/* Glowing Watermark Aura */}
+        <div className={`absolute top-0 right-0 w-72 h-72 rounded-full bg-gradient-to-br ${glowColor} blur-3xl pointer-events-none`} />
+        
+        {/* Card Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/10 relative z-10 gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400 shadow-sm">
+              <Mail className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-200 block leading-tight">
+                WORK EMAIL VERIFIER PLUS
+              </span>
+              <span className="text-[9.5px] text-slate-400 font-mono">
+                Real-Time Corporate SMTP &amp; MX Verification Record
+              </span>
+            </div>
+          </div>
+
+          <span className={`px-3 py-1 rounded-lg border text-[10.5px] font-mono font-bold flex items-center gap-1.5 self-start sm:self-auto shadow-2xs ${badgeTheme}`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+            <span>{badgeLabel}</span>
+          </span>
+        </div>
+
+        {/* Card Body: Highlighted Target Email & Core Highlights */}
+        <div className="py-4 space-y-3 relative z-10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/5 p-3.5 rounded-xl border border-white/10">
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Target Work Email</span>
+              <span className="font-mono text-sm sm:text-base font-black text-white break-all">
+                {email}
+              </span>
+            </div>
+            {domainName && domainName !== '—' && (
+              <span className="px-2.5 py-1 rounded-lg bg-blue-500/15 border border-blue-400/30 text-blue-300 font-mono text-xs font-semibold self-start sm:self-auto">
+                Domain: @{domainName}
+              </span>
+            )}
+          </div>
+
+          {/* Verification Reason / Diagnostic Advice Banner */}
+          {reason && (
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300">
+              <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <div className="leading-snug">
+                <span className="font-bold text-slate-200 block">Deliverability Insight:</span>
+                <span className="text-[11px] text-slate-300 font-medium capitalize">{reason}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Structured Dynamic Attribute Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
+        <CopyableValue label="Email Address" value={email} isMono isBold highlightColor="text-slate-900 text-sm font-extrabold" />
+        <CopyableValue label="Verification Verdict" value={rawResult?.toUpperCase()} isBold highlightColor="text-blue-700 text-sm font-extrabold" />
+        <CopyableValue label="Mailbox Existence (is_valid)" value={isValid ? 'Active & Valid' : 'Unconfirmed / Inactive'} isBold highlightColor={isValid ? 'text-emerald-700' : 'text-slate-700'} />
+        
+        <CopyableValue label="RFC Syntax Compliance" value={isSyntaxValid ? 'Valid Format (RFC 5322)' : 'Invalid Syntax'} isBold highlightColor={isSyntaxValid ? 'text-emerald-700' : 'text-red-700'} />
+        <CopyableValue label="Organization Classification" value={isCorporate ? 'Corporate Work Domain' : (domainIsFree ? 'Free Webmail Domain' : 'Standard Domain')} isBold highlightColor="text-indigo-700" />
+        <CopyableValue label="Domain Name" value={domainName} isMono isBold />
+
+        <CopyableValue label="Domain DNS Health" value={domainIsValid ? 'Active & Resolving' : 'Unresolvable'} isBold />
+        <CopyableValue label="Catch-All Server Flag" value={domainIsCatchAll ? 'Yes (Accepts All Inboxes)' : 'No (Strict Mailbox)'} isBold highlightColor={domainIsCatchAll ? 'text-amber-700' : 'text-slate-700'} />
+        <CopyableValue label="Free Email Provider" value={domainIsFree ? 'Yes (Public Webmail)' : 'No (Private/Enterprise)'} />
+
+        <CopyableValue label="Disposable / Temp Mail" value={domainIsDisposable ? '⚠️ Disposable / Temp Mail' : 'Clean (Permanent Domain)'} isBold highlightColor={domainIsDisposable ? 'text-red-700' : 'text-emerald-700'} />
+        <CopyableValue label="Spam Blacklist Status" value={domainIsSpam ? '⚠️ Blacklisted Domain' : 'Clean (Zero Spam Flags)'} isBold highlightColor={domainIsSpam ? 'text-red-700' : 'text-emerald-700'} />
+        <CopyableValue label="Mailbox Role Type" value={isRole ? 'Role-Based (e.g. admin/info/support)' : 'Personal / Dedicated User'} />
+
+        <CopyableValue label="Mailbox Storage Quota" value={isFullMailbox ? '⚠️ Full Mailbox (Bounce Risk)' : 'Storage Available'} isBold highlightColor={isFullMailbox ? 'text-amber-700' : 'text-slate-700'} />
+        <CopyableValue label="Gateway Order ID" value={orderId} isMono isBold />
+        <CopyableValue label="Client Reference" value={clientRefNum} isMono />
+
+        <CopyableValue label="Audit Request ID" value={requestId} isMono />
+        <CopyableValue label="Gateway Verification Latency" value={durationMs ? `${durationMs} ms` : null} isMono />
+        <CopyableValue label="Verified Timestamp (UTC)" value={verifiedAt ? new Date(verifiedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : null} isMono />
+      </div>
+
+      {/* MX Mail Exchange DNS Records */}
+      {Array.isArray(mxRecords) && mxRecords.length > 0 && (
+        <div className="space-y-2 pt-2">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            Authoritative MX Mail Exchanger Records ({mxRecords.length})
+          </span>
+          <div className="border border-slate-200/90 rounded-xl overflow-hidden shadow-2xs bg-white">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
+                <tr>
+                  <th className="p-3 font-mono">Priority / Pref</th>
+                  <th className="p-3">Mail Exchange Host</th>
+                  <th className="p-3 font-mono">Resolved IP</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {mxRecords.map((mx, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/70">
+                    <td className="p-3 font-mono text-blue-700 font-bold">{typeof mx === 'object' ? (mx.priority ?? mx.pref ?? idx + 1) : idx + 1}</td>
+                    <td className="p-3 font-mono text-slate-800 font-semibold">{typeof mx === 'object' ? (mx.host || mx.exchange || mx.server || JSON.stringify(mx)) : String(mx)}</td>
+                    <td className="p-3 font-mono text-slate-600">{typeof mx === 'object' ? (mx.ip || mx.address || '—') : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+/* =========================================================================
+   13. CIBIL TRANSUNION PDF REPORT (100% UNTOUCHED ENGINE & IFRAME)
    ========================================================================= */
 function CibilPdfReport({ data = {} }) {
   const name = data.name || 'CUSTOMER';

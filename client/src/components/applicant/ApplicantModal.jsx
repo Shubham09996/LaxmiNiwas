@@ -8,7 +8,8 @@ export const DEFAULT_MASTER_PROFILE = {
   fullName: 'SHUBHAM GUPTA',
   mobileNumber: '9876543210',
   panNumber: 'AAACL7821M',
-  aadhaarNumber: '984512348921'
+  aadhaarNumber: '984512348921',
+  email: 'careers@infosys.com'
 };
 
 export default function ApplicantModal({ isOpen, onClose, currentProfile, onSave }) {

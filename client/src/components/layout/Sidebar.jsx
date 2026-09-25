@@ -12,6 +12,7 @@ import {
   MapPin,
   Shield,
   TrendingUp,
+  Mail,
   Search,
   X,
   ChevronRight,
@@ -37,7 +38,7 @@ const SERVICE_GROUPS = [
   {
     id: 'EMPLOYMENT',
     name: 'Employment & Income',
-    apiIds: ['uan-lookup-mobile', 'uan-direct-history']
+    apiIds: ['uan-lookup-mobile', 'uan-direct-history', 'work-email-plus']
   },
   {
     id: 'BUREAU',
@@ -90,7 +91,8 @@ const iconMap = {
   Globe,
   MapPin,
   Shield,
-  TrendingUp
+  TrendingUp,
+  Mail
 };
 
 export default function Sidebar({

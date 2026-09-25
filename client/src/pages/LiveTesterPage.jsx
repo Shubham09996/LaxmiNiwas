@@ -38,7 +38,8 @@ import {
   X,
   RotateCcw,
   Cpu,
-  CornerDownLeft
+  CornerDownLeft,
+  Mail
 } from 'lucide-react';
 import { ALL_APIS } from '../config/constants.js';
 import { api } from '../services/api.js';
@@ -73,6 +74,9 @@ function getDerivedPlaceholder(apiItem, key, master) {
   if (lower.includes('mobile') || lower.includes('phone')) {
     return master.mobileNumber || defaultVal;
   }
+  if (lower.includes('email')) {
+    return master.email || defaultVal || 'careers@infosys.com';
+  }
   return defaultVal;
 }
 
@@ -100,6 +104,9 @@ function getHumanFieldLabel(key) {
     lat: 'GPS Latitude',
     lon: 'GPS Longitude',
     domain: 'Corporate Domain Name',
+    email: 'Business / Work Email',
+    work_email: 'Business / Work Email',
+    corporate_email: 'Corporate Work Email',
     gender: 'Gender',
     date_of_birth: 'Date of Birth (YYYY-MM-DD)',
     dob: 'Date of Birth (YYYY-MM-DD)',
@@ -125,6 +132,7 @@ function getCtaButtonLabel(apiId, defaultName) {
     'ip-fraud-geolocation': 'Evaluate IP Risk & Geolocation',
     'reverse-geocoding': 'Convert GPS to Postal Address',
     'domain-age-security': 'Verify Domain Lifetime & MX Records',
+    'work-email-plus': 'Verify Work Email Deliverability & MX',
     'cibil-transunion-pdf': 'Pull TransUnion CIBIL Report & PDF',
     'experian-credit-report': 'Generate Experian Bureau Analysis',
     'crif-credit-score-v4': 'Fetch CRIF HighMark Credit Score'
@@ -207,7 +215,8 @@ const iconMap = {
   Globe,
   MapPin,
   Shield,
-  TrendingUp
+  TrendingUp,
+  Mail
 };
 
 export default function LiveTesterPage() {

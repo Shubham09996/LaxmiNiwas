@@ -378,6 +378,30 @@ export const gatewayService = {
     return await callGatewayPost(url, payload, 25000);
   },
 
+  // 16. Work Email Verifier Plus
+  // Route: /api/v1/verify/work-email-plus
+  async verifyWorkEmailPlus(params = {}) {
+    const creds = getBharatCloudCreds();
+    const url = `${creds.baseUrl}/api/v1/verify/work-email-plus`;
+    const cleanEmail = String(
+      params.email ||
+      params.work_email ||
+      params.business_email ||
+      params.corporate_email ||
+      params.email_id ||
+      ''
+    ).trim().toLowerCase();
+
+    const payload = {
+      api_id: creds.api_id,
+      api_key: creds.api_key,
+      token_id: creds.token_id,
+      email: cleanEmail
+    };
+
+    return await callGatewayPost(url, payload, 25000);
+  },
+
   // Compatibility aliases
   async fetchUanEmploymentHistory(params) {
     return await this.getUanHistory(params);
@@ -387,5 +411,8 @@ export const gatewayService = {
   },
   async checkIpFraud(params) {
     return await this.lookupIpRisk(params);
+  },
+  async verifyWorkEmail(params) {
+    return await this.verifyWorkEmailPlus(params);
   }
 };

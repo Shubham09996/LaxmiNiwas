@@ -87,7 +87,11 @@ export const runServiceByName = async (req, res) => {
       'experian-credit-report': 'experian-credit-report',
       'crif': 'crif-credit-score-v4',
       'crif-score': 'crif-credit-score-v4',
-      'crif-credit-score-v4': 'crif-credit-score-v4'
+      'crif-credit-score-v4': 'crif-credit-score-v4',
+      'work-email': 'work-email-plus',
+      'work-email-plus': 'work-email-plus',
+      'work-email-verifier-plus': 'work-email-plus',
+      'office-email': 'work-email-plus'
     };
 
     const targetApiId = serviceMap[serviceName] || serviceName;

@@ -318,13 +318,31 @@ export const ALL_APIS = [
       first_name: 'SHUBHAM',
       last_name: 'GUPTA'
     }
+  },
+  {
+    id: 'work-email-plus',
+    num: 18,
+    name: 'Work Email Verifier Plus',
+    category: 'Employment',
+    gateway: 'Bharat Cloud',
+    baseCost: 2.00,
+    gst: 0.36,
+    cost: 2.36,
+    icon: 'Mail',
+    tag: 'Bharat Cloud • Email Plus',
+    description: 'Real-time corporate work email deliverability, MX mailbox verification, disposable domain & spam detection.',
+    details: '/api/v1/verify/work-email-plus • POST • Bharat Cloud',
+    fixedRules: 'Strict syntax, MX DNS lookup, disposable check & SMTP handshake',
+    sampleInput: {
+      email: 'careers@infosys.com'
+    }
   }
 ];
 
-export const TOTAL_BASE_COST = 170.39;
-export const TOTAL_GST = 30.66;
-export const TOTAL_COST_WITH_GST = 201.05;
-export const TOTAL_COST_PER_CUSTOMER = 201.05;
+export const TOTAL_BASE_COST = 172.39;
+export const TOTAL_GST = 31.02;
+export const TOTAL_COST_WITH_GST = 203.41;
+export const TOTAL_COST_PER_CUSTOMER = 203.41;
 export const SERVICES_CATALOG = ALL_APIS;
 export const API_STAGES = {};
 

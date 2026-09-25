@@ -150,7 +150,6 @@ function CopyableValue({ label, value, isMono = false, isBold = false, highlight
 export default function Visual3DCard({ result }) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState('visual'); // 'visual' | 'json'
 
   if (!result) return null;
 
@@ -238,46 +237,6 @@ export default function Visual3DCard({ result }) {
         </motion.button>
       </div>
 
-      {/* View Mode Tab Switcher */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 text-xs font-bold shadow-2xs">
-          <button
-            type="button"
-            onClick={() => {
-              soundEngine.playClick();
-              setActiveTab('visual');
-            }}
-            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'visual'
-                ? 'bg-white text-slate-900 shadow-xs border border-slate-200/90'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Visual Identity Card</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              soundEngine.playClick();
-              setActiveTab('json');
-            }}
-            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'json'
-                ? 'bg-white text-slate-900 shadow-xs border border-slate-200/90'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5 text-blue-600" />
-            <span>Raw JSON Response</span>
-          </button>
-        </div>
-
-        <span className="text-[10.5px] font-mono text-slate-400">
-          {activeTab === 'visual' ? 'High-fidelity formatted dossier' : 'Raw untouched gateway payload'}
-        </span>
-      </div>
-
       {/* Upstream Error Notice (Only when failed) */}
       {!success && error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2.5">
@@ -286,38 +245,26 @@ export default function Visual3DCard({ result }) {
         </div>
       )}
 
-      {/* 100% Visual Renderers vs Raw JSON View */}
-      {activeTab === 'json' ? (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-[11px] text-slate-500 pb-1">
-            <span className="font-mono font-semibold text-slate-700">Payload Source: Live Gateway Rail</span>
-            <span className="font-mono">JSON Size: {JSON.stringify(result).length} chars</span>
-          </div>
-          <pre className="p-4 sm:p-5 bg-slate-950 text-emerald-400 font-mono text-[11.5px] rounded-xl overflow-x-auto border border-slate-800 shadow-inner max-h-[580px] leading-relaxed selection:bg-emerald-900 selection:text-white">
-            {JSON.stringify(result, null, 2)}
-          </pre>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {cardType === 'PAN_CARD' && <PanReport data={visualData} raw={data} />}
-          {cardType === 'DIGILOCKER_GENERATE_CARD' && <DigiLockerGenerateReport data={visualData} raw={data} />}
-          {cardType === 'AADHAAR_CARD' && <AadhaarReport data={visualData} raw={data} />}
-          {cardType === 'BANK_ACCOUNT_CARD' && <BankAccountReport data={visualData} raw={data} />}
-          {cardType === 'MOBILE_TO_BANK_CARD' && <MobileToBankReport data={visualData} raw={data} />}
-          {cardType === 'UPI_LOOKUP_CARD' && <UpiLookupReport data={visualData} raw={data} />}
-          {cardType === 'IFSC_DIRECTORY_CARD' && <IfscDirectoryReport data={visualData} raw={data} />}
-          {cardType === 'UAN_LOOKUP_CARD' && <UanLookupReport data={visualData} raw={data} />}
-          {cardType === 'UAN_HISTORY_CARD' && <UanHistoryReport data={visualData} raw={data} />}
-          {cardType === 'TELECOM_CARD' && <TelecomReport data={visualData} raw={data} />}
-          {cardType === 'IP_FRAUD_CARD' && <IpFraudReport data={visualData} raw={data} />}
-          {cardType === 'GEO_REVERSE_CARD' && <GeoReverseReport data={visualData} raw={data} />}
-          {cardType === 'DOMAIN_CARD' && <DomainReport data={visualData} raw={data} />}
-          {cardType === 'WORK_EMAIL_PLUS_CARD' && <WorkEmailPlusReport data={visualData} raw={data} />}
-          {cardType === 'CIBIL_PDF_CARD' && <CibilPdfReport data={visualData} raw={data} />}
-          {cardType === 'BUREAU_SCORE_CARD' && <BureauScoreReport data={visualData} raw={data} />}
-          {cardType === 'GENERIC_CARD' && <GenericReport data={visualData} raw={data} />}
-        </div>
-      )}
+      {/* 100% Visual Renderers + Complete Dynamic Attributes Grid */}
+      <div className="space-y-6">
+        {cardType === 'PAN_CARD' && <PanReport data={visualData} raw={data} />}
+        {cardType === 'DIGILOCKER_GENERATE_CARD' && <DigiLockerGenerateReport data={visualData} raw={data} />}
+        {cardType === 'AADHAAR_CARD' && <AadhaarReport data={visualData} raw={data} />}
+        {cardType === 'BANK_ACCOUNT_CARD' && <BankAccountReport data={visualData} raw={data} />}
+        {cardType === 'MOBILE_TO_BANK_CARD' && <MobileToBankReport data={visualData} raw={data} />}
+        {cardType === 'UPI_LOOKUP_CARD' && <UpiLookupReport data={visualData} raw={data} />}
+        {cardType === 'IFSC_DIRECTORY_CARD' && <IfscDirectoryReport data={visualData} raw={data} />}
+        {cardType === 'UAN_LOOKUP_CARD' && <UanLookupReport data={visualData} raw={data} />}
+        {cardType === 'UAN_HISTORY_CARD' && <UanHistoryReport data={visualData} raw={data} />}
+        {cardType === 'TELECOM_CARD' && <TelecomReport data={visualData} raw={data} />}
+        {cardType === 'IP_FRAUD_CARD' && <IpFraudReport data={visualData} raw={data} />}
+        {cardType === 'GEO_REVERSE_CARD' && <GeoReverseReport data={visualData} raw={data} />}
+        {cardType === 'DOMAIN_CARD' && <DomainReport data={visualData} raw={data} />}
+        {cardType === 'WORK_EMAIL_PLUS_CARD' && <WorkEmailPlusReport data={visualData} raw={data} />}
+        {cardType === 'CIBIL_PDF_CARD' && <CibilPdfReport data={visualData} raw={data} />}
+        {cardType === 'BUREAU_SCORE_CARD' && <BureauScoreReport data={visualData} raw={data} />}
+        {cardType === 'GENERIC_CARD' && <GenericReport data={visualData} raw={data} />}
+      </div>
 
     </motion.div>
   );
